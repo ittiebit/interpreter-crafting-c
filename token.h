@@ -12,6 +12,6 @@ typedef struct Token {
 } Token;
 
 char * to_string(Token * token);
-Token * create_token(TokenType type, char * lexeme, char * literal, size_t line);
+Token * create_token(TokenType type, char * lexeme, void * literal, size_t line);
 
 #endif //TOKEN_H_

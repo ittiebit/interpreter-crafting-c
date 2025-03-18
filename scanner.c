@@ -39,10 +39,12 @@ Scanner * create_scanner(char * source) {
 }
 
 Token ** scan_tokens(Scanner * scanner) {
-    while (is_at_end(scanner)) {
+    while (!is_at_end(scanner)) {
         scanner->start = scanner->current;
         scan_token(scanner);
     }
+
+    printf("The end!\n");
 
     ++scanner->token_list_size;
     *(scanner->tokens+scanner->token_list_size-1) = create_token(EOFF, "", NULL, scanner->line);
@@ -54,6 +56,7 @@ Token ** scan_tokens(Scanner * scanner) {
 
 void scan_token(Scanner * scanner) {
     char c = advance(scanner);
+    printf("scanning token\n");
     switch (c) {
         case '(': add_token(scanner, LEFT_PAREN, NULL); break;
         case ')': add_token(scanner, RIGHT_PAREN, NULL); break;
@@ -70,7 +73,6 @@ void scan_token(Scanner * scanner) {
         case '=': add_token(scanner, match(scanner, '=') ? EQUAL_EQUAL : EQUAL, NULL); break;
         case '<': add_token(scanner, match(scanner, '=') ? LESS_EQUAL : LESS, NULL); break;
         case '>': add_token(scanner, match(scanner, '=') ? GREATER_EQUAL : GREATER, NULL); break;
-
 
         case '"': string(scanner); break;
 
@@ -115,13 +117,16 @@ int is_at_end(Scanner * scanner) {
 }
 
 char advance(Scanner * scanner) {
+    printf("Advancing current... %ld\n", scanner->current);
     return scanner->source[++scanner->current];
 }
 
 void add_token(Scanner * scanner, TokenType type, void * literal) {
-    char * text = malloc((scanner->start + scanner->current) * sizeof(char));
+    char * text = malloc((scanner->current - scanner->start) * sizeof(char));
 
     memcpy(text, scanner->source+scanner->start, scanner->current-scanner->start);
+
+    printf("-- %ld\n", scanner->current-scanner->start);
 
     ++scanner->token_list_size;
     *(scanner->tokens+scanner->token_list_size-1) = create_token(type, text, literal, scanner->line);

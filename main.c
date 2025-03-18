@@ -42,7 +42,7 @@ void run(char * source) {
 
     // For now, just print the tokens.
     for (int i = 0; i < 100; i++) {
-        printf("%s", to_string(tokens[i]));
+        //printf("%s", to_string(tokens[i]));
     }
 
     return;

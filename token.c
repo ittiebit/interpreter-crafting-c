@@ -6,30 +6,58 @@
 
 char * to_string(Token * token) {
     size_t allocate_len = 8;
-    allocate_len += strlen(token->lexeme);
-    allocate_len += strlen(token->literal);
+    if (token->lexeme != NULL) {
+        allocate_len += strlen(token->lexeme);
+    }
+    if (token->literal != NULL) {
+        allocate_len += strlen(token->literal);
+    }
     allocate_len += 2;
+
+    printf("type %d\n", token->type);
+    printf("lexeme %s\n", token->lexeme);
 
     char * str = malloc(sizeof(char) * allocate_len);
 
     size_t len = 0;
     len += sprintf(str+len, "%d", token->type);
-    len += sprintf(str+len, " %s", token->lexeme);
-    len += sprintf(str+len, " %s", token->literal);
+    if (token->lexeme != NULL) {
+        len += sprintf(str+len, " %s", token->lexeme);
+    }
+    if (token->literal != NULL) {
+        len += sprintf(str+len, " %s", (char*)token->literal);
+    }
 
     return str;
 }
 
-Token * create_token(TokenType type, char * lexeme, char * literal, size_t line) {
+Token * create_token(TokenType type, char * lexeme, void * literal, size_t line) {
     Token * ptoken = malloc(sizeof(Token));
+    if (ptoken == NULL) {
+        printf("Error: Failed to allocate token!\n");
+        exit(3);
+    }
 
     ptoken->type = type;
 
-    ptoken->lexeme = malloc(sizeof(char) * strlen(lexeme));
-    strcpy(ptoken->lexeme, lexeme);
+    printf("lexeme %s\n", lexeme);
+    if (lexeme != NULL) {
+        ptoken->lexeme = malloc(sizeof(char) * strlen(lexeme));
+        if (ptoken->lexeme == NULL) {
+            printf("Error: Failed to allocate token->lexeme!\n");
+            exit(3);
+        }
+        strcpy(ptoken->lexeme, lexeme);
+    }
 
-    ptoken->literal = malloc(sizeof(char) * strlen(literal));
-    strcpy(ptoken->literal, literal);
+    if (literal != NULL) {
+        ptoken->literal = malloc(sizeof(char) * strlen(literal));
+        if (ptoken->literal == NULL) {
+            printf("Error: Failed to allocate token->literal!\n");
+            exit(3);
+        }
+        memcpy(ptoken->literal, literal, sizeof(literal));
+    }
 
     ptoken->line = line;
 
