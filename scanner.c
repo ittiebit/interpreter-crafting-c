@@ -56,7 +56,7 @@ Token ** scan_tokens(Scanner * scanner) {
 
 void scan_token(Scanner * scanner) {
     char c = advance(scanner);
-    printf("scanning token\n");
+    printf("scanning token: %c\n", c);
     switch (c) {
         case '(': add_token(scanner, LEFT_PAREN, NULL); break;
         case ')': add_token(scanner, RIGHT_PAREN, NULL); break;
@@ -86,12 +86,16 @@ void scan_token(Scanner * scanner) {
             break;
 
         case ' ':
+            printf("!!! space\n");
         case '\r':
+            printf("!!! \\r\n");
         case '\t':
+            printf("!!! \\t\n");
             // Ignore whitespace.
             break;
         case '\n':
-            ++scanner->line;
+            printf("!!! \\n\n");
+            ++(scanner->line);
             break;
 
         case 'o':
@@ -101,9 +105,12 @@ void scan_token(Scanner * scanner) {
             break;
 
         default:
+            printf("\n!!! default: %c\n",c );
             if (is_digit(c)) {
+                printf("    default digit %c\n",c );
                 number(scanner);
             } else if (is_alpha(c)) {
+                printf("    default alpha %c\n",c );
                 identifier(scanner);
             } else {
                 error(scanner->line, "Unexpected character.", NULL);
@@ -125,8 +132,6 @@ void add_token(Scanner * scanner, TokenType type, void * literal) {
     char * text = malloc((scanner->current - scanner->start) * sizeof(char));
 
     memcpy(text, scanner->source+scanner->start, scanner->current-scanner->start);
-
-    printf("-- %ld\n", scanner->current-scanner->start);
 
     ++scanner->token_list_size;
     *(scanner->tokens+scanner->token_list_size-1) = create_token(type, text, literal, scanner->line);

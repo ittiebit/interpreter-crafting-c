@@ -1,5 +1,6 @@
 CC := gcc
-CFLAGS := -g -Wall -Wextra
+CFLAGS := -g
+#CFLAGS := -Wall -Wextra
 
 all: main
 
