@@ -3,6 +3,7 @@
 #include <stdlib.h>
 #include "./token.h"
 #include "./scanner.h"
+#include "./definitions.h"
 
 void run_prompt();
 void run(char * source);
@@ -27,7 +28,7 @@ void run_prompt() {
 
     while (1) {
         printf("> ");
-        char line[100];
+        char line[SOURCE_BUF_SIZE];
         fgets(line, sizeof(line), stdin);
         if (line[0] == '\n') continue;
         run(line);
@@ -42,7 +43,7 @@ void run(char * source) {
 
     // For now, just print the tokens.
     for (int i = 0; i < 100; i++) {
-        //printf("%s", to_string(tokens[i]));
+        printf("%s", to_string(tokens[i]));
     }
 
     return;

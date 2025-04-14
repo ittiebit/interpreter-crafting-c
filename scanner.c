@@ -1,3 +1,4 @@
+#include <stddef.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -5,6 +6,7 @@
 #include "./token.h"
 #include "./token_types.h"
 #include "./clox.h"
+#include "definitions.h"
 
 void scan_token(Scanner * scanner);
 int is_at_end(Scanner * scanner);
@@ -20,14 +22,77 @@ int is_digit(char c);
 int is_alpha(char c);
 int is_alpha_numeric(char c);
 
+void realloc_str(char * pstr, size_t str_size) {
+    if (str_size == 0) {
+        fprintf(stderr, "ERROR in scanner.c - realloc_str(): source_str_size is 0\nexiting...\n");
+        exit(1);
+    }
+
+    if (pstr != NULL) {
+        free(pstr);
+        pstr = NULL;
+    }
+
+    pstr = malloc(str_size * sizeof(char));
+
+    if (pstr == NULL) {
+        fprintf(stderr, "ERROR in scanner.c - realloc_str(): malloc() failure\nexiting...\n");
+        exit(1);
+    }
+
+    return;
+}
+
+void cpy_str(char * dst, const char * src, size_t src_len) {
+    if (src == NULL) {
+        fprintf(stderr, "ERROR in scanner.c - cpy_str(): *src is NULL\nexiting...\n");
+        exit(1);
+    }
+
+    if (dst == NULL) {
+        fprintf(stderr, "ERROR in scanner.c - memcpy_str(): *dst is NULL (is it allocated?)\nexiting...\n");
+        exit(1);
+    }
+
+    strncpy(dst, src, strlen(src));
+
+    return;
+}
+
+Scanner * alloc_null_scanner() {
+    Scanner * pscan = malloc(sizeof(Scanner));
+    if (pscan == NULL) {
+        fprintf(stderr, "ERROR in scanner.c - alloc_null_scanner(): malloc() failure\nexiting...\n");
+        exit(1);
+    }
+
+    pscan->source = NULL;
+    pscan->tokens = NULL;
+
+    return pscan;
+}
 
 Scanner * create_scanner(char * source) {
-    Scanner * pscan = malloc(sizeof(Scanner));
+    Scanner * pscan = alloc_null_scanner();
 
-    pscan->source = malloc(strlen(source) * sizeof(char));
-    strcpy(pscan->source, source);
+    size_t source_str_len = strlen(source);
+
+    //realloc_str(pscan->source, SOURCE_BUF_SIZE);
+    //printf("%s\t%ld\t%ld", source, strlen(source), SOURCE_BUF_SIZE * sizeof(char));
+    if (pscan == NULL) {
+        printf("huh?");
+    }
+    pscan->source = malloc(SOURCE_BUF_SIZE * sizeof(char));
+    //cpy_str(pscan->source, source, source_str_len + 1);
+    memcpy(pscan->source, source, SOURCE_BUF_SIZE * sizeof(char));
+
+    pscan->source = source;
 
     pscan->tokens = malloc(sizeof(Token *) * SCANNER_TOKEN_LIST_BEGIN_SIZE);
+    if (pscan->tokens == NULL) {
+        fprintf(stderr, "ERROR in scanner.c - create_scanner(): malloc() failure\nexiting...\n");
+        exit(1);
+    }
 
     pscan->token_list_size = 0;
 
@@ -51,8 +116,6 @@ Token ** scan_tokens(Scanner * scanner) {
 
     return scanner->tokens;
 }
-
-//scan_token();
 
 void scan_token(Scanner * scanner) {
     char c = advance(scanner);
@@ -107,16 +170,19 @@ void scan_token(Scanner * scanner) {
         default:
             printf("\n!!! default: %c\n",c );
             if (is_digit(c)) {
-                printf("    default digit %c\n",c );
+                printf("Unexptected digit: %c\n", c);
                 number(scanner);
             } else if (is_alpha(c)) {
-                printf("    default alpha %c\n",c );
+                printf("Unexptected alpha: %c\n", c);
                 identifier(scanner);
             } else {
+                printf("Unexpected character: %c\n", c);
                 error(scanner->line, "Unexpected character.", NULL);
+                return;
             }
             break;
     }
+    return;
 }
 
 int is_at_end(Scanner * scanner) {
@@ -125,7 +191,20 @@ int is_at_end(Scanner * scanner) {
 
 char advance(Scanner * scanner) {
     printf("Advancing current... %ld\n", scanner->current);
-    return scanner->source[++scanner->current];
+
+    size_t next_char_pos = scanner->current + 1;
+    char next_char = scanner->source[++scanner->current];
+
+    // Error when advancing past end of line string
+    if (strlen(scanner->source) < next_char_pos || next_char == '\0') {
+        scanner->current = 0;
+        free(scanner->source);
+        return NULL_CHAR;
+    }
+
+    ++scanner->current;
+
+    return scanner->source[next_char_pos];
 }
 
 void add_token(Scanner * scanner, TokenType type, void * literal) {
@@ -167,9 +246,10 @@ void string(Scanner * scanner) {
     // The closing ".
     advance(scanner);
 
+    size_t str_size = scanner->current-scanner->start-1;
     // Trim the surrounding quotes.
-    char * value;
-    memcpy(value, scanner->source+scanner->start+1, scanner->current-scanner->start-1);
+    char * value = malloc(str_size * sizeof(char));
+    memcpy(value, scanner->source+scanner->start+1, str_size);
     add_token(scanner, STRING, value);
 }
 
@@ -184,15 +264,15 @@ void number(Scanner * scanner) {
       while (is_digit(peek(scanner))) advance(scanner);
     }
 
-    char * number_str;
+    size_t number_str_size = scanner->current-scanner->start;
+    char * number_str = malloc(number_str_size * sizeof(char));
 
-    memcpy(number_str, scanner->source+scanner->start, scanner->current-scanner->start);
+    memcpy(number_str, scanner->source+scanner->start, number_str_size);
 
     double val = atof(number_str);
 
     add_token(scanner, NUMBER, &val);
 }
-
 
 void identifier(Scanner * scanner) {
     while (is_alpha_numeric(peek(scanner))) advance(scanner);

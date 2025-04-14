@@ -1,6 +1,8 @@
 #ifndef TOKEN_TYPE_H_
 #define TOKEN_TYPE_H_
 
+#define NULL_CHAR '\0'
+
 typedef enum TokenType {
   // Single-character tokens.
   LEFT_PAREN, RIGHT_PAREN, LEFT_BRACE, RIGHT_BRACE,
