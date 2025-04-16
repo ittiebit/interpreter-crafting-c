@@ -49,6 +49,13 @@ void run(char * source) {
         printf("Token: %s\n", to_string(tokens[i]));
     }
 
+    for (int i = 0; i < 100; i++) {
+        if (tokens[i] == NULL) {
+            return;
+        }
+        free_token(tokens[i]);
+    }
+
     return;
 }
 

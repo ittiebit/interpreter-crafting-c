@@ -148,7 +148,7 @@ void scan_token(Scanner * scanner) {
 }
 
 int is_at_end(Scanner * scanner) {
-    return scanner->current >= strlen(scanner->source); //is this -1 bad?
+    return scanner->current >= strlen(scanner->source);
 }
 
 char advance(Scanner * scanner) {
@@ -196,6 +196,7 @@ void string(Scanner * scanner) {
     while (peek(scanner) != '"' && !is_at_end(scanner)) {
         if (peek(scanner) == '\n') scanner->line++;
         advance(scanner);
+        printf("char: %c at %ld\n", scanner->source[scanner->current], scanner->current);
     }
 
     if (is_at_end(scanner)) {
@@ -206,30 +207,45 @@ void string(Scanner * scanner) {
     // The closing ".
     advance(scanner);
 
-    size_t str_size = scanner->current-scanner->start-1;
+    size_t str_size = scanner->current-scanner->start-2; // why -2???????
     // Trim the surrounding quotes.
     char * value = malloc(str_size * sizeof(char));
     memcpy(value, scanner->source+scanner->start+1, str_size);
+
+    printf("string value %s with size %ld\n", value, str_size);
+
     add_token(scanner, STRING, value);
 }
 
 void number(Scanner * scanner) {
-    while (is_digit(peek(scanner))) advance(scanner);
+    while (is_digit(peek(scanner))) {
+        printf("char: %c at %ld\n", scanner->source[scanner->current], scanner->current);
+
+        advance(scanner);
+    }
 
     // Look for a fractional part.
     if (peek(scanner) == '.' && is_digit(peek_next(scanner))) {
-      // Consume the "."
-      advance(scanner);
+        // Consume the "."
+        printf("char: %c at %ld\n", scanner->source[scanner->current], scanner->current);
+        advance(scanner);
 
-      while (is_digit(peek(scanner))) advance(scanner);
+        while (is_digit(peek(scanner))) {
+            printf("char: %c at %ld\n", scanner->source[scanner->current], scanner->current);
+            advance(scanner);
+        }
     }
+
+    printf("%ld\n", scanner->start);
 
     size_t number_str_size = scanner->current-scanner->start;
     char * number_str = malloc(number_str_size * sizeof(char));
+    // memcpy(number_str, scanner->source+scanner->start, number_str_size);
+    strcpy(number_str, scanner->source+scanner->start);
 
-    memcpy(number_str, scanner->source+scanner->start, number_str_size);
 
-    double val = atof(number_str);
+    double * val = malloc(sizeof(double));
+    *val = atof(number_str);
 
     add_token(scanner, NUMBER, &val);
 }
