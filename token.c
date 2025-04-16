@@ -14,9 +14,6 @@ char * to_string(Token * token) {
     }
     allocate_len += 2;
 
-    printf("type %d\n", token->type);
-    printf("lexeme %s\n", token->lexeme);
-
     char * str = malloc(sizeof(char) * allocate_len);
 
     size_t len = 0;
@@ -27,6 +24,9 @@ char * to_string(Token * token) {
     if (token->literal != NULL) {
         len += sprintf(str+len, " %s", (char*)token->literal);
     }
+
+    //printf("\ttype %d\n", token->type);
+    //printf("\tlexeme %s\n", token->lexeme);
 
     return str;
 }
@@ -40,7 +40,6 @@ Token * create_token(TokenType type, char * lexeme, void * literal, size_t line)
 
     ptoken->type = type;
 
-    printf("lexeme %s\n", lexeme);
     if (lexeme != NULL) {
         ptoken->lexeme = malloc(sizeof(char) * strlen(lexeme));
         if (ptoken->lexeme == NULL) {

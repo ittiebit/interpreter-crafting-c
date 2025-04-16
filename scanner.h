@@ -15,6 +15,7 @@ typedef struct Scanner {
   size_t start;
   size_t current;
   size_t line;
+  char had_error;
 } Scanner;
 
 Scanner * create_scanner(char * source);

@@ -8,7 +8,7 @@
 void run_prompt();
 void run(char * source);
 void run_file(char * path);
-void error(size_t line, char * message, int * had_error);
+void errorr(size_t line, char * message, int * had_error);
 void report(size_t line, char * where, char * message, int * had_error);
 
 int main(int argc, char ** argv) {
@@ -43,7 +43,10 @@ void run(char * source) {
 
     // For now, just print the tokens.
     for (int i = 0; i < 100; i++) {
-        printf("%s", to_string(tokens[i]));
+        if (tokens[i] == NULL) {
+            return;
+        }
+        printf("Token: %s\n", to_string(tokens[i]));
     }
 
     return;

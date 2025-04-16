@@ -22,43 +22,6 @@ int is_digit(char c);
 int is_alpha(char c);
 int is_alpha_numeric(char c);
 
-void realloc_str(char * pstr, size_t str_size) {
-    if (str_size == 0) {
-        fprintf(stderr, "ERROR in scanner.c - realloc_str(): source_str_size is 0\nexiting...\n");
-        exit(1);
-    }
-
-    if (pstr != NULL) {
-        free(pstr);
-        pstr = NULL;
-    }
-
-    pstr = malloc(str_size * sizeof(char));
-
-    if (pstr == NULL) {
-        fprintf(stderr, "ERROR in scanner.c - realloc_str(): malloc() failure\nexiting...\n");
-        exit(1);
-    }
-
-    return;
-}
-
-void cpy_str(char * dst, const char * src, size_t src_len) {
-    if (src == NULL) {
-        fprintf(stderr, "ERROR in scanner.c - cpy_str(): *src is NULL\nexiting...\n");
-        exit(1);
-    }
-
-    if (dst == NULL) {
-        fprintf(stderr, "ERROR in scanner.c - memcpy_str(): *dst is NULL (is it allocated?)\nexiting...\n");
-        exit(1);
-    }
-
-    strncpy(dst, src, strlen(src));
-
-    return;
-}
-
 Scanner * alloc_null_scanner() {
     Scanner * pscan = malloc(sizeof(Scanner));
     if (pscan == NULL) {
@@ -75,18 +38,11 @@ Scanner * alloc_null_scanner() {
 Scanner * create_scanner(char * source) {
     Scanner * pscan = alloc_null_scanner();
 
-    size_t source_str_len = strlen(source);
-
-    //realloc_str(pscan->source, SOURCE_BUF_SIZE);
-    //printf("%s\t%ld\t%ld", source, strlen(source), SOURCE_BUF_SIZE * sizeof(char));
     if (pscan == NULL) {
         printf("huh?");
     }
     pscan->source = malloc(SOURCE_BUF_SIZE * sizeof(char));
-    //cpy_str(pscan->source, source, source_str_len + 1);
     memcpy(pscan->source, source, SOURCE_BUF_SIZE * sizeof(char));
-
-    pscan->source = source;
 
     pscan->tokens = malloc(sizeof(Token *) * SCANNER_TOKEN_LIST_BEGIN_SIZE);
     if (pscan->tokens == NULL) {
@@ -119,7 +75,13 @@ Token ** scan_tokens(Scanner * scanner) {
 
 void scan_token(Scanner * scanner) {
     char c = advance(scanner);
-    printf("scanning token: %c\n", c);
+
+    if (c == NULL_CHAR) {
+        printf("NULL_CHAR\n");
+        return;
+    }
+
+    //printf("scanning token: %c\n", c);
     switch (c) {
         case '(': add_token(scanner, LEFT_PAREN, NULL); break;
         case ')': add_token(scanner, RIGHT_PAREN, NULL); break;
@@ -149,15 +111,15 @@ void scan_token(Scanner * scanner) {
             break;
 
         case ' ':
-            printf("!!! space\n");
+            //printf("!!! space\n");
         case '\r':
-            printf("!!! \\r\n");
+            //printf("!!! \\r\n");
         case '\t':
-            printf("!!! \\t\n");
+            //printf("!!! \\t\n");
             // Ignore whitespace.
             break;
         case '\n':
-            printf("!!! \\n\n");
+            //printf("!!! \\n\n");
             ++(scanner->line);
             break;
 
@@ -168,16 +130,15 @@ void scan_token(Scanner * scanner) {
             break;
 
         default:
-            printf("\n!!! default: %c\n",c );
             if (is_digit(c)) {
-                printf("Unexptected digit: %c\n", c);
+                //printf("Unexptected digit: %c\n", c);
                 number(scanner);
             } else if (is_alpha(c)) {
-                printf("Unexptected alpha: %c\n", c);
+                //printf("Unexptected alpha: %c\n", c);
                 identifier(scanner);
             } else {
                 printf("Unexpected character: %c\n", c);
-                error(scanner->line, "Unexpected character.", NULL);
+                cerror(scanner->line, "Unexpected character.", &scanner->had_error);
                 return;
             }
             break;
@@ -186,25 +147,22 @@ void scan_token(Scanner * scanner) {
 }
 
 int is_at_end(Scanner * scanner) {
-    return scanner->current >= strlen(scanner->source);
+    return scanner->current >= strlen(scanner->source)-1; //is this -1 bad?
 }
 
 char advance(Scanner * scanner) {
     printf("Advancing current... %ld\n", scanner->current);
 
-    size_t next_char_pos = scanner->current + 1;
-    char next_char = scanner->source[++scanner->current];
+    size_t next_char_pos = ++scanner->current;
+    char next_char = scanner->source[next_char_pos];
 
     // Error when advancing past end of line string
-    if (strlen(scanner->source) < next_char_pos || next_char == '\0') {
-        scanner->current = 0;
+    if (next_char_pos >= strlen(scanner->source) || next_char == '\0') {
         free(scanner->source);
         return NULL_CHAR;
     }
 
-    ++scanner->current;
-
-    return scanner->source[next_char_pos];
+    return next_char;
 }
 
 void add_token(Scanner * scanner, TokenType type, void * literal) {
@@ -239,7 +197,7 @@ void string(Scanner * scanner) {
     }
 
     if (is_at_end(scanner)) {
-        error(scanner->line, "Unterminated string.", NULL);
+        cerror(scanner->line, "Unterminated string.", NULL);
         return;
     }
 

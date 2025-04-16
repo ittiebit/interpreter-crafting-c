@@ -3,7 +3,7 @@
 
 #include <stddef.h>
 
-void error(size_t line, char * message, int * had_error);
-void report(size_t line, char * where, char * message, int * had_error);
+void cerror(size_t line, char * message, char * had_error);
+void report(size_t line, char * where, char * message, char * had_error);
 
 #endif
