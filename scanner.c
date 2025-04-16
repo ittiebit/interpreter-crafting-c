@@ -39,10 +39,13 @@ Scanner * create_scanner(char * source) {
     Scanner * pscan = alloc_null_scanner();
 
     if (pscan == NULL) {
-        printf("huh?");
+        exit(1);
     }
-    pscan->source = malloc(SOURCE_BUF_SIZE * sizeof(char));
-    memcpy(pscan->source, source, SOURCE_BUF_SIZE * sizeof(char));
+
+    //pscan->source = malloc(SOURCE_BUF_SIZE * sizeof(char));
+    //memcpy(pscan->source, source, SOURCE_BUF_SIZE * sizeof(char));
+
+    pscan->source = source;
 
     pscan->tokens = malloc(sizeof(Token *) * SCANNER_TOKEN_LIST_BEGIN_SIZE);
     if (pscan->tokens == NULL) {
@@ -64,8 +67,6 @@ Token ** scan_tokens(Scanner * scanner) {
         scanner->start = scanner->current;
         scan_token(scanner);
     }
-
-    printf("The end!\n");
 
     ++scanner->token_list_size;
     *(scanner->tokens+scanner->token_list_size-1) = create_token(EOFF, "", NULL, scanner->line);
@@ -147,22 +148,23 @@ void scan_token(Scanner * scanner) {
 }
 
 int is_at_end(Scanner * scanner) {
-    return scanner->current >= strlen(scanner->source)-1; //is this -1 bad?
+    return scanner->current >= strlen(scanner->source); //is this -1 bad?
 }
 
 char advance(Scanner * scanner) {
-    printf("Advancing current... %ld\n", scanner->current);
+    //printf("Advancing current... %ld\n", scanner->current);
 
-    size_t next_char_pos = ++scanner->current;
-    char next_char = scanner->source[next_char_pos];
+    size_t cur_char_pos = scanner->current;
+    char cur_char = scanner->source[cur_char_pos];
 
-    // Error when advancing past end of line string
-    if (next_char_pos >= strlen(scanner->source) || next_char == '\0') {
-        free(scanner->source);
+    // At end of line string
+    if (cur_char_pos >= strlen(scanner->source) || cur_char == '\0') {
         return NULL_CHAR;
     }
 
-    return next_char;
+    scanner->current++;
+
+    return cur_char;
 }
 
 void add_token(Scanner * scanner, TokenType type, void * literal) {
