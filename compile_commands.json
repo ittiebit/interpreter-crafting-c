@@ -1,0 +1,5 @@
+[{
+  "directory": ".",
+  "file": "main",
+  "arguments": ["gcc", "main.c", "-Wall", "-Wextra", "-Werror"]
+}]
