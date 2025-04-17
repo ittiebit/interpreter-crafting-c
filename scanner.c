@@ -247,7 +247,7 @@ void number(Scanner * scanner) {
     double * val = malloc(sizeof(double));
     *val = atof(number_str);
 
-    add_token(scanner, NUMBER, &val);
+    add_token(scanner, NUMBER, val);
 }
 
 void identifier(Scanner * scanner) {
