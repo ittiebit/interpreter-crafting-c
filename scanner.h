@@ -3,6 +3,8 @@
 
 #include "./token.h"
 
+#include "utils/hashmap.h"
+
 #define SCANNER_TOKEN_LIST_BEGIN_SIZE 100
 
 #define FALSE 0
@@ -16,6 +18,7 @@ typedef struct Scanner {
   size_t current;
   size_t line;
   char had_error;
+  map_t * keyword_map;
 } Scanner;
 
 Scanner * create_scanner(char * source);

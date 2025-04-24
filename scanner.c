@@ -7,6 +7,7 @@
 #include "./token_types.h"
 #include "./clox.h"
 #include "definitions.h"
+#include "utils/hashmap.h"
 
 void scan_token(Scanner * scanner);
 int is_at_end(Scanner * scanner);
@@ -21,6 +22,9 @@ void identifier(Scanner * scanner);
 int is_digit(char c);
 int is_alpha(char c);
 int is_alpha_numeric(char c);
+
+map_t create_keywords_hashmap();
+
 
 Scanner * alloc_null_scanner() {
     Scanner * pscan = malloc(sizeof(Scanner));
@@ -59,10 +63,14 @@ Scanner * create_scanner(char * source) {
     pscan->current = 0;
     pscan->line = 1;
 
+    pscan->keyword_map = create_keywords_hashmap();
+
     return pscan;
 }
 
 Token ** scan_tokens(Scanner * scanner) {
+    map_t keyword_map = create_keywords_hashmap();
+
     while (!is_at_end(scanner)) {
         scanner->start = scanner->current;
         scan_token(scanner);
@@ -253,7 +261,29 @@ void number(Scanner * scanner) {
 void identifier(Scanner * scanner) {
     while (is_alpha_numeric(peek(scanner))) advance(scanner);
 
-    add_token(scanner, IDENTIFIER, NULL);
+    char * text = malloc((scanner->current - scanner->start) * sizeof(char));
+    memcpy(text, scanner->source+scanner->start, scanner->current-scanner->start);
+
+    any_t * what;
+
+    any_t any_type;
+    int code = hashmap_get(scanner->keyword_map, text, any_type);
+    if (code != MAP_OK) {
+        printf("Error in scanner.c - identifier: hashmap_get returned code - %i\n", code);
+    }
+
+    TokenType type = (int*)any_type;
+
+    printf("Identifier '%s' has type %i", text, type);
+
+    if (type == NULL_CHAR) {
+        type = IDENTIFIER;
+    }
+
+    // if (type == null) type = IDENTIFIER;
+    // addToken(type);
+
+    add_token(scanner, type, NULL);
 }
 
 char peek_next(Scanner * scanner) {
@@ -273,4 +303,23 @@ int is_alpha(char c) {
 
 int is_alpha_numeric(char c) {
     return is_alpha(c) || is_digit(c);
+}
+
+map_t create_keywords_hashmap() {
+    map_t keywords = hashmap_new();
+    static const size_t size = 16;
+    int keys[size] = {
+        AND, CLASS, ELSE, FALSE, FOR,
+        FUN, IF, NIL, OR, PRINT, RETURN,
+        SUPER, THIS, TRUE, VAR, WHILE
+    };
+    char * keys_str[size] = {
+        "and", "class", "else", "false", "for",
+        "fun", "if", "nil", "or", "print", "return",
+        "super", "this", "true", "var", "while"
+    };
+    for (size_t i = 0; i < size; i++) {
+        hashmap_put(keywords, keys_str[i], &keys[i]);
+    }
+    return keywords;
 }
