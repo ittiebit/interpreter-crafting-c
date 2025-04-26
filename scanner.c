@@ -25,6 +25,21 @@ int is_alpha_numeric(char c);
 
 map_t create_keywords_hashmap();
 
+#define HASHMAP_SIZE 16
+
+int keys[HASHMAP_SIZE] = {
+        AND,        CLASS,      ELSE,   FALSE,  FOR,
+        FUN,        IF,         NIL,    OR,     PRINT,
+        RETURN,     SUPER,      THIS,   TRUE,   VAR,
+        WHILE
+    };
+
+char * keys_str[HASHMAP_SIZE] = {
+        "and",      "class",    "else", "false", "for",
+        "fun",      "if",       "nil",  "or",    "print",
+        "return",   "super",    "this", "true",  "var",
+        "while"
+    };
 
 Scanner * alloc_null_scanner() {
     Scanner * pscan = malloc(sizeof(Scanner));
@@ -53,7 +68,7 @@ Scanner * create_scanner(char * source) {
 
     pscan->tokens = malloc(sizeof(Token *) * SCANNER_TOKEN_LIST_BEGIN_SIZE);
     if (pscan->tokens == NULL) {
-        fprintf(stderr, "ERROR in scanner.c - create_scanner(): malloc() failure\nexiting...\n");
+        fprintf(stderr, "ERROR in scanner.c - create_scanner(): pscan->tokens = malloc() failure\nexiting...\n");
         exit(1);
     }
 
@@ -63,7 +78,13 @@ Scanner * create_scanner(char * source) {
     pscan->current = 0;
     pscan->line = 1;
 
+    pscan->keyword_map = NULL;
     pscan->keyword_map = create_keywords_hashmap();
+
+    if (pscan->keyword_map == NULL) {
+        fprintf(stderr, "ERROR in scanner.c - create_scanner(): pscan->keyword_map = create_keywords_hashmap() failure\nexiting...\n");
+        exit(1);
+    }
 
     return pscan;
 }
@@ -132,11 +153,11 @@ void scan_token(Scanner * scanner) {
             ++(scanner->line);
             break;
 
-        case 'o':
-            if (match(scanner, 'r')) {
-                add_token(scanner, OR, NULL);
-            }
-            break;
+        //case 'o':
+        //    if (match(scanner, 'r')) {
+        //        add_token(scanner, OR, NULL);
+        //    }
+        //    break;
 
         default:
             if (is_digit(c)) {
@@ -264,24 +285,27 @@ void identifier(Scanner * scanner) {
     char * text = malloc((scanner->current - scanner->start) * sizeof(char));
     memcpy(text, scanner->source+scanner->start, scanner->current-scanner->start);
 
-    any_t * what;
-
-    any_t any_type;
-    int code = hashmap_get(scanner->keyword_map, text, any_type);
-    if (code != MAP_OK) {
-        printf("Error in scanner.c - identifier: hashmap_get returned code - %i\n", code);
+    any_t any_type = NULL;
+    any_t * pany_type = &any_type;
+    int code = hashmap_get(scanner->keyword_map, text, pany_type);
+    if (code == MAP_FULL) {
+        printf("Error in scanner.c - identifier(): hashmap_get returned code %i. Hashmap is full.\n", code);
+        exit(1);
+    }
+    if (code == MAP_OMEM) {
+        printf("Error in scanner.c - identifier(): hashmap_get returned code %i. Out of memory.\n", code);
+        exit(1);
     }
 
-    TokenType type = (int*)any_type;
+    TokenType type;
 
-    printf("Identifier '%s' has type %i", text, type);
-
-    if (type == NULL_CHAR) {
+    if (any_type == NULL || code == MAP_MISSING) {
         type = IDENTIFIER;
+    } else {
+        type = *(TokenType*)any_type;
     }
 
-    // if (type == null) type = IDENTIFIER;
-    // addToken(type);
+    printf("Identifier '%s' has type %i\n", text, type);
 
     add_token(scanner, type, NULL);
 }
@@ -307,18 +331,7 @@ int is_alpha_numeric(char c) {
 
 map_t create_keywords_hashmap() {
     map_t keywords = hashmap_new();
-    static const size_t size = 16;
-    int keys[size] = {
-        AND, CLASS, ELSE, FALSE, FOR,
-        FUN, IF, NIL, OR, PRINT, RETURN,
-        SUPER, THIS, TRUE, VAR, WHILE
-    };
-    char * keys_str[size] = {
-        "and", "class", "else", "false", "for",
-        "fun", "if", "nil", "or", "print", "return",
-        "super", "this", "true", "var", "while"
-    };
-    for (size_t i = 0; i < size; i++) {
+    for (size_t i = 0; i < HASHMAP_SIZE; i++) {
         hashmap_put(keywords, keys_str[i], &keys[i]);
     }
     return keywords;
