@@ -1,7 +1,6 @@
 #include <stddef.h>
 #include <stdio.h>
 #include <stdlib.h>
-#include "./token.h"
 #include "./scanner.h"
 #include "./definitions.h"
 
