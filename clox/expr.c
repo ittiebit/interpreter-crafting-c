@@ -1,10 +1,6 @@
 #include "./scanner.h"
+#include "./expr.h"
 
-typedef struct _Expr {
-    struct Expr * left;
-    struct Expr * right;
-    Token operator;
-} Expr;
 
 // abstract class Expr { 
 //   static class Binary extends Expr {

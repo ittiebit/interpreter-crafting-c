@@ -4,8 +4,8 @@
 #include <string.h>
 #include "./scanner.h"
 #include "./clox.h"
+#include "../utils/hashmap.h"
 #include "definitions.h"
-#include "hashmap.h"
 
 void scan_token(Scanner * scanner);
 int is_at_end(Scanner * scanner);

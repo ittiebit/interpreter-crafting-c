@@ -7,7 +7,7 @@ CFLAGS := -g
 TARGET_EXEC := main
 
 BUILD_DIR := ./build
-SRC_DIR := ./clox
+SRC_DIRS := ./clox ./utils
 
 #SRCS := $(shell find $(SRC_DIRS) -name '*.cpp' -or -name '*.c' -or -name '*.s')
 SRCS := $(shell find $(SRC_DIRS) -name '*.c')
