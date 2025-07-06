@@ -1,19 +1,22 @@
-#include "./scanner.h"
+#include <stdlib.h>
+#include <string.h>
 #include "./expr.h"
+#include "./token.h"
 
 
-// abstract class Expr { 
-//   static class Binary extends Expr {
-//     Binary(Expr left, Token operator, Expr right) {
-//       this.left = left;
-//       this.operator = operator;
-//       this.right = right;
-//     }
-// 
-//     final Expr left;
-//     final Token operator;
-//     final Expr right;
-//   }
-// 
-//   // Other expressions...
-// }
+Binary_expr * new_binary_expr(Expr * left, Token token, Expr * right) {
+    if (left == NULL || right == NULL) {
+        return NULL;
+    }
+
+    Binary_expr * expr = malloc(sizeof(Binary_expr));
+    if (expr == NULL) {
+        exit(1);
+    }
+
+    memcpy(&expr->token, &token, sizeof(token));
+    expr->left = left;
+    expr->right = right;
+
+    return expr;
+}

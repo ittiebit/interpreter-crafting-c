@@ -3,7 +3,7 @@
 
 #include <stddef.h>
 #include "../utils/hashmap.h"
-#include "./token.h"
+#include "token.h"
 
 char * to_string(Token * token);
 Token * create_token(TokenType type, char * lexeme, void * literal, size_t line);
@@ -30,9 +30,6 @@ Token ** scan_tokens(Scanner * scanner);
 void scan_token(Scanner * scanner);
 int is_at_end(Scanner * scanner);
 void add_token(Scanner * scanner, TokenType type, void * literal);
-char advance(Scanner * scanner);
-int match(Scanner * scanner, char expected);
-char peek(Scanner * scanner);
 void string(Scanner * scanner);
 char peek_next(Scanner * scanner);
 void number(Scanner * scanner);
