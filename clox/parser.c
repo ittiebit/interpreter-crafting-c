@@ -108,3 +108,14 @@ Expr * factor(Parser * parser) {
 
     return expr;
 }
+
+Expr * unary(Parser * parser) {
+    if (p_match(parser, BANG) || p_match(parser, MINUS)) {
+        Token operator = p_previous(parser);
+        Expr * right = unary(parser);
+        return new_unary_expr(operator, right);
+    }
+
+    return primary(parser);
+}
+

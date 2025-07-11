@@ -62,6 +62,7 @@ typedef struct Operator_expr_t {
 } Operator_expr_t;
 
 
-Binary_expr * new_binary_expr(Expr * left, Token token, Expr * right);
+Binary_expr * new_binary_expr(Expr * left, Token op, Expr * right);
+Unary_expr * new_unary_expr(Token op, Expr * token);
 
 #endif
