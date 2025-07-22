@@ -9,4 +9,6 @@ typedef struct Parser_t {
     Token ** tokens;
 } Parser;
 
+Parser * create_parser(Token ** tokens);
+
 #endif // PARSER_H_

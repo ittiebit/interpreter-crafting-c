@@ -3,6 +3,7 @@
 #include <stdlib.h>
 #include "./scanner.h"
 #include "./definitions.h"
+#include "./parser.h"
 
 void run_prompt();
 void run(char * source);
@@ -39,6 +40,8 @@ void run_prompt() {
 void run(char * source) {
     Scanner * scanner = create_scanner(source);
     Token ** tokens = scan_tokens(scanner);
+
+    Parser * parser = create_parser(tokens);
 
     // For now, just print the tokens.
     for (int i = 0; i < 100; i++) {

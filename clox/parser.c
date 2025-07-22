@@ -3,6 +3,8 @@
 #include "token.h"
 #include "parser.h"
 
+Parser * create_parser(Token ** tokens);
+
 char p_match(Parser * parser, TokenType token_type);
 Token p_advance(Parser * parser);
 char p_isAtEnd(Parser * parser);
@@ -15,6 +17,21 @@ Expr * term(Parser * parser);
 Expr * factor(Parser * parser);
 Expr * unary(Parser * parser);
 Expr * primary(Parser * parser);
+
+Parser * create_parser(Token ** tokens) {
+    if (tokens == NULL) {
+        return NULL;
+    }
+    Parser * parser = malloc(sizeof(Parser));
+
+    if (parser == NULL) {
+        exit(1);
+    }
+
+    parser->tokens = tokens;
+
+    return parser;
+}
 
 char p_match(Parser * parser, TokenType token_type) {
     if (p_peek(parser).type == token_type) {
@@ -113,9 +130,12 @@ Expr * unary(Parser * parser) {
     if (p_match(parser, BANG) || p_match(parser, MINUS)) {
         Token operator = p_previous(parser);
         Expr * right = unary(parser);
-        return new_unary_expr(operator, right);
+        return (Expr*)new_unary_expr(operator, right);
     }
 
     return primary(parser);
 }
 
+Expr * primary(Parser * parser) {
+    return NULL;
+}
