@@ -166,7 +166,7 @@ void scan_token(Scanner * scanner) {
                 identifier(scanner);
             } else {
                 printf("Unexpected character: %c\n", c);
-                cerror(scanner->line, "Unexpected character.", &scanner->had_error);
+                scan_error(scanner->line, "Unexpected character.", &scanner->had_error);
                 return;
             }
             break;
@@ -227,7 +227,7 @@ void string(Scanner * scanner) {
     }
 
     if (is_at_end(scanner)) {
-        cerror(scanner->line, "Unterminated string.", NULL);
+        scan_error(scanner->line, "Unterminated string.", NULL);
         return;
     }
 

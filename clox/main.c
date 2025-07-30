@@ -1,6 +1,7 @@
 #include <stddef.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <unistd.h>
 #include "./scanner.h"
 #include "./definitions.h"
 #include "./parser.h"
@@ -8,15 +9,14 @@
 void run_prompt();
 void run(char * source);
 void run_file(char * path);
-void errorr(size_t line, char * message, int * had_error);
-void report(size_t line, char * where, char * message, int * had_error);
 
 int main(int argc, char ** argv) {
     if (argc > 2) {
         printf("Usage: clox [script]");
         exit(EXIT_FAILURE);
     } else if (argc == 2) {
-        run_file(argv[1]);
+        printf("%s\n", argv[1]);
+        //run_file(argv[1]);
     } else {
         run_prompt();
     }
@@ -25,15 +25,22 @@ int main(int argc, char ** argv) {
 }
 
 void run_prompt() {
+    char line[SOURCE_BUF_SIZE];
 
-    while (1) {
+    int interactive = isatty(fileno(stdin));
+
+    if (!interactive) {
+        fgets(line, sizeof(line), stdin);
+        run(line);
+        return;
+    }
+
+    while (interactive) {
         printf("> ");
-        char line[SOURCE_BUF_SIZE];
         fgets(line, sizeof(line), stdin);
         if (line[0] == '\n') continue;
         run(line);
     }
-
     return;
 }
 
@@ -42,14 +49,15 @@ void run(char * source) {
     Token ** tokens = scan_tokens(scanner);
 
     Parser * parser = create_parser(tokens);
+    Expr * expr = parse(parser);
 
-    // For now, just print the tokens.
-    for (int i = 0; i < 100; i++) {
-        if (tokens[i] == NULL) {
-            return;
-        }
-        printf("Token: %s\n", to_string(tokens[i]));
-    }
+    // // For now, just print the tokens.
+    // for (int i = 0; i < 100; i++) {
+    //     if (tokens[i] == NULL) {
+    //         return;
+    //     }
+    //     printf("Token: %s\n", to_string(tokens[i]));
+    // }
 
     for (int i = 0; i < 100; i++) {
         if (tokens[i] == NULL) {
@@ -57,6 +65,8 @@ void run(char * source) {
         }
         free_token(tokens[i]);
     }
+
+    free_parser(parser);
 
     return;
 }
