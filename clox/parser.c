@@ -13,7 +13,7 @@ Token * p_peek(Parser * parser);
 Token * p_previous(Parser * parser);
 
 Token * p_consume(Parser * parser, TokenType type, char * message);
-void * p_error(Token * token, char * message);
+void * p_error(Token * token, char * message, char * p_errors);
 
 Expr * expression(Parser * parser);
 Expr * equality(Parser * parser);
@@ -23,15 +23,22 @@ Expr * factor(Parser * parser);
 Expr * unary(Parser * parser);
 Expr * primary(Parser * parser);
 
-Parser * create_parser(Token ** tokens) {
+Parser * create_parser(Token ** tokens, char * p_errors) {
     if (tokens == NULL) {
         return NULL;
     }
     Parser * parser = malloc(sizeof(Parser));
 
     if (parser == NULL) {
+        fprintf(stderr, "ERROR in parser.c - create_parser(): Failed to allocate parser.\n");
         exit(1);
     }
+
+    if (p_errors == NULL) {
+        fprintf(stderr, "ERROR in parser.c - create_parser(): char * p_errors argument is NULL\n");
+        exit(1);
+    }
+    parser->p_errors = p_errors;
 
     parser->tokens = tokens;
 
@@ -70,7 +77,7 @@ char p_match(Parser * parser, TokenType token_type) {
 char p_check(Parser * parser, TokenType type) {
     if (p_isAtEnd(parser)) return 0;
     return p_peek(parser)->type == type;
-  }
+}
 
 Token * p_advance(Parser * parser) {
     if (!p_isAtEnd(parser)) {
@@ -94,11 +101,11 @@ Token * p_previous(Parser * parser) {
 Token * p_consume(Parser * parser, TokenType type, char * message) {
     if (p_check(parser, type)) return p_advance(parser);
 
-    return p_error(p_peek(parser), message); // TODO: Error enum/type or something?
+    return p_error(p_peek(parser), message, parser->p_errors); // TODO: Error enum/type or something?
 }
 
-void * p_error(Token * token, char * message) {
-    error(token, message);
+void * p_error(Token * token, char * message, char * p_errors) {
+    cerror(token, message, p_errors);
     return NULL;
 }
 
@@ -136,8 +143,10 @@ Expr * equality(Parser * parser) {
     while (p_match(parser, BANG_EQUAL) || p_match(parser, EQUAL_EQUAL)) {
         Token * operator = p_previous(parser);
         Expr * right = comparison(parser);
-        expr->expr = new_binary_expr(expr, operator, right);
-        if (expr->expr == NULL) {
+        Expr * left = expr;
+        expr = NULL;
+        expr = new_binary_expr(left, operator, right);
+        if (expr == NULL) {
             exit(1);
         }
     }
@@ -151,8 +160,10 @@ Expr * comparison(Parser * parser) {
     while (p_match(parser, GREATER) || p_match(parser, GREATER_EQUAL) || p_match(parser, LESS) || p_match(parser, LESS_EQUAL)) {
         Token * operator = p_previous(parser);
         Expr * right = term(parser);
-        expr->expr = new_binary_expr(expr, operator, right);
-        if (expr->expr == NULL) {
+        Expr * left = expr;
+        expr = NULL;
+        expr = new_binary_expr(left, operator, right);
+        if (expr == NULL) {
             exit(1);
         }
     }
@@ -166,8 +177,10 @@ Expr * term(Parser * parser) {
     while (p_match(parser, MINUS) || p_match(parser, PLUS)) {
         Token * operator = p_previous(parser);
         Expr * right = factor(parser);
-        expr->expr = new_binary_expr(expr, operator, right);
-        if (expr->expr == NULL) {
+        Expr * left = expr;
+        expr = NULL;
+        expr = new_binary_expr(left, operator, right);
+        if (expr == NULL) {
             exit(1);
         }
     }
@@ -181,8 +194,10 @@ Expr * factor(Parser * parser) {
     while (p_match(parser, SLASH) || p_match(parser, STAR)) {
         Token * operator = p_previous(parser);
         Expr * right = unary(parser);
-        expr->expr = new_binary_expr(expr, operator, right);
-        if (expr->expr == NULL) {
+        Expr * left = expr;
+        expr = NULL;
+        expr = new_binary_expr(left, operator, right);
+        if (expr == NULL) {
             exit(1);
         }
     }
@@ -194,7 +209,7 @@ Expr * unary(Parser * parser) {
     if (p_match(parser, BANG) || p_match(parser, MINUS)) {
         Token * operator = p_previous(parser);
         Expr * right = unary(parser);
-        return (Expr*)new_unary_expr(operator, right);
+        return new_unary_expr(operator, right);
     }
 
     return primary(parser);
@@ -202,25 +217,25 @@ Expr * unary(Parser * parser) {
 
 Expr * primary(Parser * parser) {
     if (p_match(parser, TRUE)) {
-        return (Expr*)new_literal_expr(TRUE, NULL); // True
+        return new_literal_expr(TRUE, NULL); // True
     } else if (p_match(parser, FALSE)) {
-        return (Expr*)new_literal_expr(FALSE, NULL); // False
+        return new_literal_expr(FALSE, NULL); // False
     } else if (p_match(parser, NIL)) {
-        return (Expr*)new_literal_expr(NIL, NULL); // NULL
+        return new_literal_expr(NIL, NULL); // NULL
     }
 
     if (p_match(parser, NUMBER) || p_match(parser, STRING)) {
         Token * token = p_previous(parser);
-        return (Expr*)new_literal_expr(token->type, token->literal);
+        return new_literal_expr(token->type, token->literal);
     }
 
     if (p_match(parser, LEFT_PAREN)) {
         Expr * expr = expression(parser);
         p_consume(parser, RIGHT_PAREN, "Expect ')' after expression.");
-        return (Expr*)new_grouping_expr(expr);
+        return new_grouping_expr(expr);
     }
 
-    p_error(p_peek(parser), "Expect expression.");
+    //p_error(p_peek(parser), "Expect expression.", parser->p_errors);
 
     return NULL;
 }

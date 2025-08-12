@@ -6,6 +6,7 @@
 #include "./clox.h"
 #include "../utils/hashmap.h"
 #include "definitions.h"
+#include "token.h"
 
 void scan_token(Scanner * scanner);
 int is_at_end(Scanner * scanner);
@@ -22,8 +23,6 @@ int is_alpha(char c);
 int is_alpha_numeric(char c);
 
 map_t create_keywords_hashmap();
-
-#define HASHMAP_SIZE 16
 
 int keys[HASHMAP_SIZE] = {
         AND,        CLASS,      ELSE,   FALSE,  FOR,
@@ -52,7 +51,7 @@ Scanner * alloc_null_scanner() {
     return pscan;
 }
 
-Scanner * create_scanner(char * source) {
+Scanner * create_scanner(char * source, char * p_errors) {
     Scanner * pscan = alloc_null_scanner();
 
     if (pscan == NULL) {
@@ -64,17 +63,16 @@ Scanner * create_scanner(char * source) {
 
     pscan->source = source;
 
-    pscan->tokens = malloc(sizeof(Token *) * SCANNER_TOKEN_LIST_BEGIN_SIZE);
+    pscan->tokens = malloc(sizeof(Token *) * SOURCE_BUF_SIZE);
     if (pscan->tokens == NULL) {
         fprintf(stderr, "ERROR in scanner.c - create_scanner(): pscan->tokens = malloc() failure\nexiting...\n");
         exit(1);
     }
 
     pscan->token_list_size = 0;
-
     pscan->start = 0;
     pscan->current = 0;
-    pscan->line = 1;
+    pscan->line = 0;
 
     pscan->keyword_map = NULL;
     pscan->keyword_map = create_keywords_hashmap();
@@ -84,7 +82,38 @@ Scanner * create_scanner(char * source) {
         exit(1);
     }
 
+    if (p_errors == NULL) {
+        fprintf(stderr, "ERROR in scanner.c - create_scanner(): char * p_errors argument is NULL\n");
+        exit(1);
+    }
+
     return pscan;
+}
+
+/*
+ * Does not free Tokens! Free Tokens before freeing the scanner!!
+ **/
+void free_scanner(Scanner * scanner) {
+    if (scanner == NULL) {
+        return;
+    }
+
+    for (size_t i = 0; i < SOURCE_BUF_SIZE; i++) {
+        scanner->tokens = NULL;
+    }
+    scanner->token_list_size = 0;
+    scanner->start = 0;
+    scanner->current = 0;
+    scanner->line = 0;
+
+    hashmap_free(scanner->keyword_map);
+    scanner->keyword_map = NULL;
+
+    memset(scanner->p_errors, 0x0, sizeof(char));
+    scanner->p_errors = NULL;
+
+    memset(scanner->source, 0x0, sizeof(char) * SOURCE_BUF_SIZE);
+    scanner->source = NULL; // source text buffer not allocated for now
 }
 
 Token ** scan_tokens(Scanner * scanner) {
@@ -105,7 +134,7 @@ void scan_token(Scanner * scanner) {
     char c = advance(scanner);
 
     if (c == NULL_CHAR) {
-        printf("NULL_CHAR\n");
+        fprintf(stderr, "ERROR scanner.c - scan_token(): NULL_CHAR at scan start\n");
         return;
     }
 
@@ -139,15 +168,15 @@ void scan_token(Scanner * scanner) {
             break;
 
         case ' ':
-            //printf("!!! space\n");
+            //printf("Token: space\n");
         case '\r':
-            //printf("!!! \\r\n");
+            //printf("Token: \\r\n");
         case '\t':
-            //printf("!!! \\t\n");
+            //printf("Token: \\t\n");
             // Ignore whitespace.
             break;
         case '\n':
-            //printf("!!! \\n\n");
+            //printf("Token: \\n\n");
             ++(scanner->line);
             break;
 
@@ -165,8 +194,8 @@ void scan_token(Scanner * scanner) {
                 //printf("Unexptected alpha: %c\n", c);
                 identifier(scanner);
             } else {
-                printf("Unexpected character: %c\n", c);
-                scan_error(scanner->line, "Unexpected character.", &scanner->had_error);
+                //printf("Unexpected character: %c\n", c);
+                scan_error(scanner->line, "Unexpected character.", scanner->p_errors);
                 return;
             }
             break;
@@ -195,9 +224,11 @@ char advance(Scanner * scanner) {
 }
 
 void add_token(Scanner * scanner, TokenType type, void * literal) {
-    char * text = malloc((scanner->current - scanner->start) * sizeof(char));
-
-    memcpy(text, scanner->source+scanner->start, scanner->current-scanner->start);
+    char * text = NULL;
+    if (literal != NULL) {
+        text = malloc((scanner->current - scanner->start) * sizeof(char));
+        memcpy(text, scanner->source+scanner->start, scanner->current-scanner->start);
+    }
 
     ++scanner->token_list_size;
     *(scanner->tokens+scanner->token_list_size-1) = create_token(type, text, literal, scanner->line);
@@ -221,9 +252,10 @@ char peek(Scanner * scanner) {
 
 void string(Scanner * scanner) {
     while (peek(scanner) != '"' && !is_at_end(scanner)) {
-        if (peek(scanner) == '\n') scanner->line++;
+        if (peek(scanner) == '\n') {
+            scanner->line++;
+        }
         advance(scanner);
-        printf("char: %c at %ld\n", scanner->source[scanner->current], scanner->current);
     }
 
     if (is_at_end(scanner)) {
@@ -234,19 +266,20 @@ void string(Scanner * scanner) {
     // The closing ".
     advance(scanner);
 
-    size_t str_size = scanner->current-scanner->start-2; // why -2???????
+    size_t string_size = scanner->current-scanner->start-2;
     // Trim the surrounding quotes.
-    char * value = malloc(str_size * sizeof(char));
-    memcpy(value, scanner->source+scanner->start+1, str_size);
+    char * string_value = malloc(string_size * sizeof(char));
+    memcpy(string_value, scanner->source+scanner->start+1, string_size);
+    string_value[string_size] = '\0'; // get rid of garbage char
 
-    printf("string value %s with size %ld\n", value, str_size);
+    printf("[SCANNER] string value '%s' with size %ld\n", string_value, string_size);
 
-    add_token(scanner, STRING, value);
+    add_token(scanner, STRING, string_value);
 }
 
 void number(Scanner * scanner) {
     while (is_digit(peek(scanner))) {
-        printf("char: %c at %ld\n", scanner->source[scanner->current], scanner->current);
+        //printf("char: %c at %ld\n", scanner->source[scanner->current], scanner->current);
 
         advance(scanner);
     }
@@ -254,44 +287,52 @@ void number(Scanner * scanner) {
     // Look for a fractional part.
     if (peek(scanner) == '.' && is_digit(peek_next(scanner))) {
         // Consume the "."
-        printf("char: %c at %ld\n", scanner->source[scanner->current], scanner->current);
+        //printf("char: %c at %ld\n", scanner->source[scanner->current], scanner->current);
         advance(scanner);
 
         while (is_digit(peek(scanner))) {
-            printf("char: %c at %ld\n", scanner->source[scanner->current], scanner->current);
+            //printf("char: %c at %ld\n", scanner->source[scanner->current], scanner->current);
             advance(scanner);
         }
     }
 
-    printf("%ld\n", scanner->start);
+    //printf("%ld\n", scanner->start);
 
     size_t number_str_size = scanner->current-scanner->start;
     char * number_str = malloc(number_str_size * sizeof(char));
-    // memcpy(number_str, scanner->source+scanner->start, number_str_size);
-    strcpy(number_str, scanner->source+scanner->start);
-
+    if (number_str == NULL) {
+        exit(1);
+    }
+    memcpy(number_str, scanner->source+scanner->start, number_str_size);
 
     double * val = malloc(sizeof(double));
+    if (val == NULL) {
+        exit(1);
+    }
     *val = atof(number_str);
 
     add_token(scanner, NUMBER, val);
 }
 
 void identifier(Scanner * scanner) {
-    while (is_alpha_numeric(peek(scanner))) advance(scanner);
+    while (is_alpha_numeric(peek(scanner))) {
+        advance(scanner);
+    }
 
-    char * text = malloc((scanner->current - scanner->start) * sizeof(char));
+    size_t text_size = scanner->current - scanner->start;
+    char * text = malloc(text_size * sizeof(char));
     memcpy(text, scanner->source+scanner->start, scanner->current-scanner->start);
+    text[text_size] = '\0';
 
     any_t any_type = NULL;
     any_t * pany_type = &any_type;
     int code = hashmap_get(scanner->keyword_map, text, pany_type);
     if (code == MAP_FULL) {
-        printf("Error in scanner.c - identifier(): hashmap_get returned code %i. Hashmap is full.\n", code);
+        fprintf(stderr, "ERROR in scanner.c - identifier(): hashmap_get returned code %i. Hashmap is full.\n", code);
         exit(1);
     }
     if (code == MAP_OMEM) {
-        printf("Error in scanner.c - identifier(): hashmap_get returned code %i. Out of memory.\n", code);
+        fprintf(stderr, "ERROR in scanner.c - identifier(): hashmap_get returned code %i. Out of memory.\n", code);
         exit(1);
     }
 
@@ -303,7 +344,7 @@ void identifier(Scanner * scanner) {
         type = *(TokenType*)any_type;
     }
 
-    printf("Identifier '%s' has type %i\n", text, type);
+    //printf("Identifier '%s' has type %i\n", text, type);
 
     add_token(scanner, type, NULL);
 }
@@ -392,7 +433,7 @@ Token * create_token(TokenType type, char * lexeme, void * literal, size_t line)
     if (lexeme != NULL) {
         ptoken->lexeme = malloc(sizeof(char) * strlen(lexeme));
         if (ptoken->lexeme == NULL) {
-            printf("Error: Failed to allocate token->lexeme!\n");
+            fprintf(stderr, "ERROR: Failed to allocate token->lexeme!\n");
             exit(3);
         }
         strcpy(ptoken->lexeme, lexeme);
@@ -401,7 +442,7 @@ Token * create_token(TokenType type, char * lexeme, void * literal, size_t line)
     if (literal != NULL) {
         ptoken->literal = malloc(sizeof(char) * strlen(literal));
         if (ptoken->literal == NULL) {
-            printf("Error: Failed to allocate token->literal!\n");
+            fprintf(stderr, "ERROR: Failed to allocate token->literal!\n");
             exit(3);
         }
         memcpy(ptoken->literal, literal, sizeof(literal));

@@ -7,11 +7,10 @@
 void report(size_t line, char * where, char * message, char * had_error) {
     printf("[line %ld] Error %s: %s\n", line, where, message);
 
-    // NOTE: What to do with had_error????
     if (had_error != NULL) {
         *had_error = 1;
     } else {
-        printf("NOTE: had_error is not implemented yet?\n");
+        fprintf(stderr, "ERROR clox.c - report(): char * had_error is NULL\n");
     }
     return;
 }
@@ -21,7 +20,7 @@ void scan_error(size_t line, char * message, char * had_error) {
     return;
 }
 
-void error(Token * token, char * message) {
+void cerror(Token * token, char * message, char * p_errors) {
     if (token->type == EOFF) {
         report(token->line, " at end", message, NULL);
     } else {
@@ -33,7 +32,7 @@ void error(Token * token, char * message) {
             strcat(where_str, "'");
         }
 
-        report(token->line, where_str, message, NULL);
+        report(token->line, where_str, message, p_errors);
     }
     return;
 }

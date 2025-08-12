@@ -1,0 +1,12 @@
+// Minus
+2 - 1
+// Plus
+1 + 2
+// Multiply
+2 * 3
+// Divide
+4 / 2
+// Divide fractional result
+5 / 2
+// Divide by fractional
+4 / 1.5

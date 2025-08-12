@@ -1,5 +1,5 @@
-#ifndef PARSER_H_
-#define PARSER_H_
+#ifndef PARSER_H
+#define PARSER_H
 
 #include <stddef.h>
 #include "expr.h"
@@ -8,10 +8,11 @@
 typedef struct Parser_t {
     size_t current;
     Token ** tokens;
+    char * p_errors;
 } Parser;
 
-Parser * create_parser(Token ** tokens);
+Parser * create_parser(Token ** tokens, char * p_errors);
 void free_parser(Parser * parser);
 Expr * parse(Parser * parser);
 
-#endif // PARSER_H_
+#endif //PARSER_H

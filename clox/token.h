@@ -1,5 +1,5 @@
-#ifndef TOKEN_H_
-#define TOKEN_H_
+#ifndef TOKEN_H
+#define TOKEN_H
 
 #include <stddef.h>
 
@@ -32,4 +32,4 @@ typedef struct Token_t {
     size_t line;
 } Token;
 
-#endif // TOKEN_H_
+#endif //TOKEN_H

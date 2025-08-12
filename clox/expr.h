@@ -1,5 +1,5 @@
-#ifndef EXPR_H_
-#define EXPR_H_
+#ifndef EXPR_H
+#define EXPR_H
 
 #include "./token.h"
 
@@ -31,7 +31,7 @@ typedef struct Expr_t {
 */
 
 typedef enum Literal_type_t {
-    LITERAL_NUMBER,
+    LITERAL_NUMBER = 0,
     LITERAL_STRING,
     LITERAL_TRUE,
     LITERAL_FALSE,
@@ -63,13 +63,15 @@ typedef struct Operator_expr_t {
 } Operator_expr_t;
 
 
-Binary_expr * new_binary_expr(Expr * left, Token * op, Expr * right);
-Unary_expr * new_unary_expr(Token * op, Expr * token);
-Literal_expr * new_literal_expr(TokenType type, void * literal);
-Grouping_expr * new_grouping_expr(Expr * expr);
-void free_binary_expr(Binary_expr * expr);
-void free_unary_expr(Unary_expr * expr);
-void free_literal_expr(Literal_expr * expr);
-void free_grouping_expr(Grouping_expr * expr);
+Expr * new_binary_expr(Expr * left, Token * op, Expr * right);
+Expr * new_unary_expr(Token * op, Expr * right);
+Expr * new_literal_expr(TokenType type, void * literal);
+Expr * new_grouping_expr(Expr * expr);
+void free_binary_expr(Expr * expr);
+void free_unary_expr(Expr * expr);
+void free_literal_expr(Expr * expr);
+void free_grouping_expr(Expr * expr);
 
-#endif
+void free_ast(Expr * expr);
+
+#endif //EXPR_H
