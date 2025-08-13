@@ -162,15 +162,14 @@ Expr * comma(Parser * parser) {
 Expr * ternary(Parser * parser) {
     Expr * expr = equality(parser);
 
-    while (p_match(parser, QUESTION)) {
+    // The typical ternary operator is right associative
+    if (p_match(parser, QUESTION)) {
         Token * operator_left = p_previous(parser);
         Expr * mid = equality(parser);
         if (p_match(parser, COLON)) {
             Token * operator_right = p_previous(parser);
-            Expr * right = equality(parser);
-            Expr * left = expr;
-            expr = NULL;
-            expr = new_ternary_expr(left, operator_left, mid, operator_right, right);
+            Expr * right = ternary(parser);
+            expr = new_ternary_expr(expr, operator_left, mid, operator_right, right);
         }
         if (expr == NULL) {
             exit(1);
