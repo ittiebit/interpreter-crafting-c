@@ -162,6 +162,35 @@ void scan_token(Scanner * scanner) {
             if (match(scanner, '/')) {
                 // A comment goes until the end of the line.
                 while (peek(scanner) != '\n' && !is_at_end(scanner)) advance(scanner);
+            } else if (match(scanner, '*')) {
+                /*
+                    A multi-line comment
+                */
+                int comment_depth = 1;
+                while (!is_at_end(scanner) && comment_depth > 0) {
+                    if (peek(scanner) == '/' && peek_next(scanner) == '*') {
+                        advance(scanner);
+                        advance(scanner);
+                        comment_depth++;
+                        continue;
+                    }
+
+                    if (peek(scanner) == '*' && peek_next(scanner) == '/') {
+                        advance(scanner);
+                        advance(scanner);
+                        comment_depth--;
+                        continue;
+                    }
+
+                    if (peek(scanner) == '\n') {
+                        ++(scanner->line);
+                    }
+
+                    advance(scanner);
+                }
+                if (is_at_end(scanner) && comment_depth > 0) {
+                    scan_error(scanner->line, "Unterminated multi-line comment", scanner->p_errors);
+                }
             } else {
                 add_token(scanner, SLASH, NULL);
             }
