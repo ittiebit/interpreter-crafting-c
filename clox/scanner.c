@@ -86,6 +86,7 @@ Scanner * create_scanner(char * source, char * p_errors) {
         fprintf(stderr, "ERROR in scanner.c - create_scanner(): char * p_errors argument is NULL\n");
         exit(1);
     }
+    pscan->p_errors = p_errors;
 
     return pscan;
 }

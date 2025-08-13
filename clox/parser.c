@@ -232,7 +232,7 @@ Expr * primary(Parser * parser) {
     if (p_match(parser, LEFT_PAREN)) {
         Expr * expr = expression(parser);
         p_consume(parser, RIGHT_PAREN, "Expect ')' after expression.");
-        return new_grouping_expr(expr);
+        return new_grouping_expr(LEFT_PAREN, expr);
     }
 
     //p_error(p_peek(parser), "Expect expression.", parser->p_errors);

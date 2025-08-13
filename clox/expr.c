@@ -129,7 +129,7 @@ void free_literal_expr(Expr * expr) {
     free(expr);
 }
 
-Expr * new_grouping_expr(Expr * expr_val) {
+Expr * new_grouping_expr(TokenType type, Expr * expr_val) {
     if (expr_val == NULL) {
         exit(1);
     }
@@ -144,6 +144,7 @@ Expr * new_grouping_expr(Expr * expr_val) {
         exit(1);
     }
     grouping_expr->expr = expr_val;
+    grouping_expr->type = type;
 
     expr->expr = grouping_expr;
     expr->expr_type = EXPR_GROUPING;

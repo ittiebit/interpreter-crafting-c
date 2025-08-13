@@ -71,7 +71,7 @@ void run(char * source) {
     /*************/
 
     if (had_error != 0) {
-        fprintf(stderr, "ERROR PARSING \n");
+        fprintf(stderr, "had_error flag set!\n");
     }
 
 

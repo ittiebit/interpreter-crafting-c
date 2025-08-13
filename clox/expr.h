@@ -45,6 +45,7 @@ typedef struct Literal_expr_t {
 
 typedef struct Grouping_expr_t {
     Expr * expr;
+    TokenType type;
 } Grouping_expr;
 
 typedef struct Unary_expr_t {
@@ -66,7 +67,7 @@ typedef struct Operator_expr_t {
 Expr * new_binary_expr(Expr * left, Token * op, Expr * right);
 Expr * new_unary_expr(Token * op, Expr * right);
 Expr * new_literal_expr(TokenType type, void * literal);
-Expr * new_grouping_expr(Expr * expr);
+Expr * new_grouping_expr(TokenType type, Expr * expr);
 void free_binary_expr(Expr * expr);
 void free_unary_expr(Expr * expr);
 void free_literal_expr(Expr * expr);
