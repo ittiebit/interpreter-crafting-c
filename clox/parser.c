@@ -38,8 +38,8 @@ Parser * create_parser(Token ** tokens, char * p_errors) {
         fprintf(stderr, "ERROR in parser.c - create_parser(): char * p_errors argument is NULL\n");
         exit(1);
     }
+    parser->current = 0;
     parser->p_errors = p_errors;
-
     parser->tokens = tokens;
 
     return parser;
