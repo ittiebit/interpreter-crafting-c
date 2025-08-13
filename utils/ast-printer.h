@@ -11,5 +11,6 @@ void print_unary_expr(Expr * expr, size_t depth);
 void print_literal_expr(Expr * expr, size_t depth);
 void print_grouping_expr(Expr * expr, size_t depth);
 void print_operator_expr(Expr * expr, size_t depth);
+void print_ternary_expr(Expr * expr, size_t depth);
 
 #endif //_AST_PRINTER_H

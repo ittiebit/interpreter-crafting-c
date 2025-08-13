@@ -8,6 +8,7 @@ typedef enum Expr_type_t {
     EXPR_GROUPING,
     EXPR_UNARY,
     EXPR_BINARY,
+    EXPR_TERNARY,
     EXPR_OPERATOR,
 } Expr_type;
 
@@ -27,7 +28,7 @@ typedef struct Expr_t {
     unary          → ( "-" | "!" ) expression ;
     binary         → expression operator expression ;
     operator       → "==" | "!=" | "<" | "<=" | ">" | ">="
-                   | "+"  | "-"  | "*" | "/" ;
+                   | "+"  | "-"  | "*" | "/" | ",";
 */
 
 typedef enum Literal_type_t {
@@ -59,6 +60,14 @@ typedef struct Binary_expr_t {
     Expr * right;
 } Binary_expr;
 
+typedef struct Ternary_expr_t {
+    Token * token_left;
+    Token * token_right;
+    Expr * left;
+    Expr * mid;
+    Expr * right;
+} Ternary_expr;
+
 typedef struct Operator_expr_t {
     Token * token;
 } Operator_expr_t;
@@ -66,10 +75,12 @@ typedef struct Operator_expr_t {
 
 Expr * new_binary_expr(Expr * left, Token * op, Expr * right);
 Expr * new_unary_expr(Token * op, Expr * right);
+Expr * new_ternary_expr(Expr * left, Token * op_left, Expr * mid, Token * op_right, Expr * right);
 Expr * new_literal_expr(TokenType type, void * literal);
 Expr * new_grouping_expr(TokenType type, Expr * expr);
 void free_binary_expr(Expr * expr);
 void free_unary_expr(Expr * expr);
+void free_ternary_expr(Expr * expr);
 void free_literal_expr(Expr * expr);
 void free_grouping_expr(Expr * expr);
 

@@ -15,6 +15,7 @@ char advance(Scanner * scanner);
 int match(Scanner * scanner, char expected);
 char peek(Scanner * scanner);
 void string(Scanner * scanner);
+void comment(Scanner * scanner);
 char peek_next(Scanner * scanner);
 void number(Scanner * scanner);
 void identifier(Scanner * scanner);
@@ -150,7 +151,9 @@ void scan_token(Scanner * scanner) {
         case '-': add_token(scanner, MINUS, NULL); break;
         case '+': add_token(scanner, PLUS, NULL); break;
         case ';': add_token(scanner, SEMICOLON, NULL); break;
-        case '*': add_token(scanner, STAR, NULL); break; 
+        case ':': add_token(scanner, COLON, NULL); break;
+        case '*': add_token(scanner, STAR, NULL); break;
+        case '?': add_token(scanner, QUESTION, NULL); break;
 
         case '!': add_token(scanner, match(scanner, '=') ? BANG_EQUAL : BANG, NULL); break;
         case '=': add_token(scanner, match(scanner, '=') ? EQUAL_EQUAL : EQUAL, NULL); break;
@@ -159,48 +162,14 @@ void scan_token(Scanner * scanner) {
 
         case '"': string(scanner); break;
 
-        case '/':
-            if (match(scanner, '/')) {
-                // A comment goes until the end of the line.
-                while (peek(scanner) != '\n' && !is_at_end(scanner)) advance(scanner);
-            } else if (match(scanner, '*')) {
-                /*
-                    A multi-line comment
-                */
-                int comment_depth = 1;
-                while (!is_at_end(scanner) && comment_depth > 0) {
-                    if (peek(scanner) == '/' && peek_next(scanner) == '*') {
-                        advance(scanner);
-                        advance(scanner);
-                        comment_depth++;
-                        continue;
-                    }
-
-                    if (peek(scanner) == '*' && peek_next(scanner) == '/') {
-                        advance(scanner);
-                        advance(scanner);
-                        comment_depth--;
-                        continue;
-                    }
-
-                    if (peek(scanner) == '\n') {
-                        ++(scanner->line);
-                    }
-
-                    advance(scanner);
-                }
-                if (is_at_end(scanner) && comment_depth > 0) {
-                    scan_error(scanner->line, "Unterminated multi-line comment", scanner->p_errors);
-                }
-            } else {
-                add_token(scanner, SLASH, NULL);
-            }
-            break;
+        case '/': comment(scanner); break;
 
         case ' ':
             //printf("Token: space\n");
+            break;
         case '\r':
             //printf("Token: \\r\n");
+            break;
         case '\t':
             //printf("Token: \\t\n");
             // Ignore whitespace.
@@ -209,12 +178,6 @@ void scan_token(Scanner * scanner) {
             //printf("Token: \\n\n");
             ++(scanner->line);
             break;
-
-        //case 'o':
-        //    if (match(scanner, 'r')) {
-        //        add_token(scanner, OR, NULL);
-        //    }
-        //    break;
 
         default:
             if (is_digit(c)) {
@@ -254,11 +217,11 @@ char advance(Scanner * scanner) {
 }
 
 void add_token(Scanner * scanner, TokenType type, void * literal) {
-    char * text = NULL;
-    if (literal != NULL) {
-        text = malloc((scanner->current - scanner->start) * sizeof(char));
-        memcpy(text, scanner->source+scanner->start, scanner->current-scanner->start);
+    char * text = malloc((scanner->current - scanner->start) * sizeof(char));
+    if (text == NULL) {
+        exit(1);
     }
+    memcpy(text, scanner->source+scanner->start, scanner->current-scanner->start);
 
     ++scanner->token_list_size;
     *(scanner->tokens+scanner->token_list_size-1) = create_token(type, text, literal, scanner->line);
@@ -305,6 +268,44 @@ void string(Scanner * scanner) {
     printf("[SCANNER] string value '%s' with size %ld\n", string_value, string_size);
 
     add_token(scanner, STRING, string_value);
+}
+
+void comment(Scanner * scanner) {
+    if (match(scanner, '/')) {
+        // A comment goes until the end of the line.
+        while (peek(scanner) != '\n' && !is_at_end(scanner)) advance(scanner);
+    } else if (match(scanner, '*')) {
+        /*
+                    A multi-line comment
+                */
+        int comment_depth = 1;
+        while (!is_at_end(scanner) && comment_depth > 0) {
+            if (peek(scanner) == '/' && peek_next(scanner) == '*') {
+                advance(scanner);
+                advance(scanner);
+                comment_depth++;
+                continue;
+            }
+
+            if (peek(scanner) == '*' && peek_next(scanner) == '/') {
+                advance(scanner);
+                advance(scanner);
+                comment_depth--;
+                continue;
+            }
+
+            if (peek(scanner) == '\n') {
+                ++(scanner->line);
+            }
+
+            advance(scanner);
+        }
+        if (is_at_end(scanner) && comment_depth > 0) {
+            scan_error(scanner->line, "Unterminated multi-line comment", scanner->p_errors);
+        }
+    } else {
+        add_token(scanner, SLASH, NULL);
+    }
 }
 
 void number(Scanner * scanner) {
@@ -461,22 +462,14 @@ Token * create_token(TokenType type, char * lexeme, void * literal, size_t line)
     ptoken->type = type;
 
     if (lexeme != NULL) {
-        ptoken->lexeme = malloc(sizeof(char) * strlen(lexeme));
+        ptoken->lexeme = strdup(lexeme);
         if (ptoken->lexeme == NULL) {
             fprintf(stderr, "ERROR: Failed to allocate token->lexeme!\n");
             exit(3);
         }
-        strcpy(ptoken->lexeme, lexeme);
     }
 
-    if (literal != NULL) {
-        ptoken->literal = malloc(sizeof(char) * strlen(literal));
-        if (ptoken->literal == NULL) {
-            fprintf(stderr, "ERROR: Failed to allocate token->literal!\n");
-            exit(3);
-        }
-        memcpy(ptoken->literal, literal, sizeof(literal));
-    }
+    ptoken->literal = literal;
 
     ptoken->line = line;
 

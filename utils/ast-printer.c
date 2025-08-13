@@ -41,6 +41,12 @@ void print_ast(Expr * expr, size_t depth) {
             print_ast(((Binary_expr*)expr->expr)->left, depth);
             print_ast(((Binary_expr*)expr->expr)->right, depth);
             break;
+        case EXPR_TERNARY:
+            print_ternary_expr(expr, depth++);
+            print_ast(((Ternary_expr*)expr->expr)->left, depth);
+            print_ast(((Ternary_expr*)expr->expr)->mid, depth);
+            print_ast(((Ternary_expr*)expr->expr)->right, depth);
+            break;
         case EXPR_OPERATOR:
             print_operator_expr(expr, depth++);
             // TODO later
@@ -68,7 +74,25 @@ void print_binary_expr(Expr * expr, size_t depth) {
         case GREATER_EQUAL: printf(">=\n"); break;
         case LESS:          printf("<\n"); break;
         case LESS_EQUAL:    printf("<=\n"); break;
+        case COMMA:         printf(",\n"); break;
         default:            printf("undefined\n"); break;
+    }
+
+    //printf_with_indent(depth, "LEX: %s\n", binary_expr->token->lexeme);
+    //printf_with_indent(depth, "LIT: NOT IMPL\n");
+}
+
+void print_ternary_expr(Expr * expr, size_t depth) {
+    Ternary_expr * ternary_expr = (Ternary_expr*)expr->expr;
+
+    printf_with_indent(depth, "[Ternary] ");
+
+    TokenType type_left = ternary_expr->token_left->type;
+    TokenType type_right = ternary_expr->token_right->type;
+    if (type_left == QUESTION && type_right == COLON) {
+        printf("? :\n");
+    } else {
+        printf("undefined\n");
     }
 
     //printf_with_indent(depth, "LEX: %s\n", binary_expr->token->lexeme);

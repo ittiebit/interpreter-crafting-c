@@ -75,6 +75,46 @@ void free_unary_expr(Expr * expr) {
     free(expr);
 }
 
+Expr * new_ternary_expr(Expr * left, Token * op_left, Expr * mid, Token * op_right, Expr * right) {
+    if (left == NULL || mid == NULL || right == NULL) {
+        return NULL;
+    }
+
+    Expr * expr = malloc(sizeof(Expr));
+    if (expr == NULL) {
+        exit(1);
+    }
+
+    Ternary_expr * ternary_expr = malloc(sizeof(Ternary_expr));
+    if (ternary_expr == NULL) {
+        exit(1);
+    }
+
+    ternary_expr->token_left = op_left;
+    ternary_expr->token_right = op_right;
+    ternary_expr->left = left;
+    ternary_expr->mid = mid;
+    ternary_expr->right = right;
+
+    expr->expr = ternary_expr;
+    expr->expr_type = EXPR_TERNARY;
+
+    return expr;
+}
+
+void free_ternary_expr(Expr * expr) {
+    Ternary_expr * ternary_expr = expr->expr;
+    ternary_expr->token_left = NULL;
+    ternary_expr->token_right = NULL;
+    ternary_expr->left = NULL;
+    ternary_expr->mid = NULL;
+    ternary_expr->right = NULL;
+    free(ternary_expr);
+    expr->expr = NULL;
+    expr->expr_type = 0;
+    free(expr);
+}
+
 Expr * new_literal_expr(TokenType type, void * literal) {
     Expr * expr = malloc(sizeof(Expr));
     if (expr == NULL) {
@@ -161,7 +201,6 @@ void free_grouping_expr(Expr * expr) {
     free(expr);
 }
 
-
 void free_ast(Expr * expr) {
     // Print the syntax tree recursively DFS
 
@@ -190,3 +229,5 @@ void free_ast(Expr * expr) {
         return;
     }
 }
+
+

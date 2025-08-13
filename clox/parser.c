@@ -1,9 +1,9 @@
 #include <stdio.h>
 #include <stdlib.h>
-#include "clox.h"
-#include "expr.h"
-#include "token.h"
-#include "parser.h"
+#include "./clox.h"
+#include "./expr.h"
+#include "./token.h"
+#include "./parser.h"
 
 char p_match(Parser * parser, TokenType token_type);
 char p_check(Parser * parser, TokenType type);
@@ -16,6 +16,8 @@ Token * p_consume(Parser * parser, TokenType type, char * message);
 void * p_error(Token * token, char * message, char * p_errors);
 
 Expr * expression(Parser * parser);
+Expr * comma(Parser * parser);
+Expr * ternary(Parser * parser);
 Expr * equality(Parser * parser);
 Expr * comparison(Parser * parser);
 Expr * term(Parser * parser);
@@ -134,7 +136,48 @@ void synchronize(Parser * parser) {
 }
 
 Expr * expression(Parser * parser) {
-    return equality(parser);
+    return comma(parser);
+}
+
+Expr * comma(Parser * parser) {
+    Expr * expr = ternary(parser);
+
+    while (p_match(parser, COMMA)) {
+        Token * operator = p_previous(parser);
+        Expr * right = ternary(parser);
+        if (right == NULL) {
+            p_error(operator, "expected right expression after ','", parser->p_errors);
+        }
+        Expr * left = expr;
+        expr = NULL;
+        expr = new_binary_expr(left, operator, right);
+        if (expr == NULL) {
+            exit(1);
+        }
+    }
+
+    return expr;
+}
+
+Expr * ternary(Parser * parser) {
+    Expr * expr = equality(parser);
+
+    while (p_match(parser, QUESTION)) {
+        Token * operator_left = p_previous(parser);
+        Expr * mid = equality(parser);
+        if (p_match(parser, COLON)) {
+            Token * operator_right = p_previous(parser);
+            Expr * right = equality(parser);
+            Expr * left = expr;
+            expr = NULL;
+            expr = new_ternary_expr(left, operator_left, mid, operator_right, right);
+        }
+        if (expr == NULL) {
+            exit(1);
+        }
+    }
+
+    return expr;
 }
 
 Expr * equality(Parser * parser) {
