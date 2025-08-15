@@ -338,24 +338,18 @@ Value * visit_unary_expr(Interpreter * inter, Expr * expr) {
     Unary_expr * unary_expr = (Unary_expr*)expr->expr;
     TokenType type = unary_expr->token->type;
 
-    void * right_val = evaluate(inter, unary_expr->expr);
-
-    Value * val = NULL;
+    Value * right_val = evaluate(inter, unary_expr->expr);
 
     double num;
     boolean boolean;
 
-    //printf_with_indent(depth, "[Unary] ");
-
     switch (type) {
         case BANG:
-            boolean = !*(char*)is_truthy(inter, right_val);
-            val = create_value(&boolean, sizeof(boolean), VAL_BOOLEAN);
-            return val;
+            boolean = !*(char*)is_truthy(inter, right_val->value);
+            return create_value(&boolean, sizeof(boolean), VAL_BOOLEAN);
         case MINUS:
-            num = -*(double*)right_val;
-            val = create_value(&num, sizeof(double), VAL_DOUBLE);
-            return val;
+            num = -(*(double*)right_val->value);
+            return create_value(&num, sizeof(double), VAL_DOUBLE);
         default:
             return NULL;
             break;
