@@ -265,7 +265,9 @@ void string(Scanner * scanner) {
     memcpy(string_value, scanner->source+scanner->start+1, string_size);
     string_value[string_size] = '\0'; // get rid of garbage char
 
+    #ifdef DEBUG
     printf("[SCANNER] string value '%s' with size %ld\n", string_value, string_size);
+    #endif
 
     add_token(scanner, STRING, string_value);
 }
