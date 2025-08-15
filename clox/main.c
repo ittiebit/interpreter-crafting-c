@@ -8,16 +8,11 @@
 #include "./expr.h"
 #include "./types.h"
 #include "./interpreter.h"
+#include "./error-type.h"
 
 #ifdef DEBUG
 #include "../utils/ast-printer.h"
 #endif
-
-typedef struct Clox_errors_t {
-    char * scan_errors;
-    char * parse_errors;
-    char * runtime_errors;
-} Clox_errors;
 
 void run_prompt();
 void run_file(char * path);

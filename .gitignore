@@ -4,3 +4,4 @@ main
 vgcore*
 
 build/
+compile_commands.json

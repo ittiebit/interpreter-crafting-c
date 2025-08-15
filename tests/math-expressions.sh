@@ -3,6 +3,6 @@
 make ..
 
 while read p; do
-  "Input $p"
-  echo "$p" | ./build/main
+  echo "[INPUT] $p";
+  echo "$p" | ./build/main;
 done <./tests/math-expressions.clox
