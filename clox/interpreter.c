@@ -52,7 +52,9 @@ void free_interpreter(Interpreter * inter) {
 
 void interpret(Interpreter * inter, Expr * expr) {
     Value * val = evaluate(inter, expr);
-    fprintf(stdout, "%s\n", stringify(val));
+    char * stringified = stringify(val);
+    fprintf(stdout, "%s\n", stringified);
+    free(stringified);
 
     if (inter->has_runtime_error) {
         // ???
@@ -66,7 +68,7 @@ char * stringify(Value * val) {
     }
 
     if (val->type == VAL_STRING) {
-        return (char*)val->value;
+        return strdup((char*)val->value);
     }
 
     if (val->type == VAL_BOOLEAN) {

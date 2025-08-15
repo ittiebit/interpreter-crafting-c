@@ -70,14 +70,11 @@ Clox_errors run(char * source) {
 
     Scanner * scanner = create_scanner(source, errors.scan_errors);
     Token ** tokens = scan_tokens(scanner);
+    free_scanner(scanner);
 
-    // // Print the tokens.
-    // for (int i = 0; i < SOURCE_BUF_SIZE; i++) {
-    //     if (tokens[i] == NULL) {
-    //         return;
-    //     }
-    //     printf("Token: %s\n", to_string(tokens[i]));
-    // }
+    if (tokens[0] == NULL || tokens[0]->type == EOFF) {
+        return errors;
+    }
 
     Parser * parser = create_parser(tokens, errors.parse_errors);
     Expr * ast = parse(parser);
@@ -86,27 +83,35 @@ Clox_errors run(char * source) {
     #ifdef DEBUG
     print_ast(ast, 0);
 
-    if (*errors.scan_errors != 0) {
-        fprintf(stderr, "had_scan_error flag set!\n");
+    if (*errors.scan_errors != VALUE_FALSE) {
+        fprintf(stderr, "[DEBUG] had_scan_error flag set!\n");
     }
-    if (*errors.parse_errors != 0) {
-        fprintf(stderr, "had_parse_error flag set!\n");
+    if (*errors.parse_errors != VALUE_FALSE) {
+        fprintf(stderr, "[DEBUG] had_parse_error flag set!\n");
     }
     #endif
     /*************/
 
+    free_parser(parser);
+
     Interpreter * inter = create_interpreter(errors.runtime_errors);
     interpret(inter, ast);
+
+    #ifdef DEBUG
+    if (*errors.runtime_errors != VALUE_FALSE) {
+        fprintf(stderr, "[DEBUG] had_scan_error flag set!\n");
+    }
+    #endif
 
     for (int i = 0; i < SOURCE_BUF_SIZE; i++) {
         if (tokens[i] == NULL) {
             return errors;
         }
         free_token(tokens[i]);
+        tokens[i] = NULL;
     }
-    free_scanner(scanner);
-    free_parser(parser);
     free_ast(ast);
+    free_interpreter(inter);
 
     return errors;
 }

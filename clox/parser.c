@@ -27,17 +27,18 @@ Expr * primary(Parser * parser);
 
 Parser * create_parser(Token ** tokens, char * p_errors) {
     if (tokens == NULL) {
+        fprintf(stderr, "[INTERNAL ERROR] in parser.c - create_parser(): Token ** tokens is NULL\n");
         return NULL;
     }
     Parser * parser = malloc(sizeof(Parser));
 
     if (parser == NULL) {
-        fprintf(stderr, "ERROR in parser.c - create_parser(): Failed to allocate parser.\n");
+        fprintf(stderr, "[INTERNAL ERROR] in parser.c - create_parser(): Failed to allocate parser.\n");
         exit(1);
     }
 
     if (p_errors == NULL) {
-        fprintf(stderr, "ERROR in parser.c - create_parser(): char * p_errors argument is NULL\n");
+        fprintf(stderr, "[INTERNAL ERROR] in parser.c - create_parser(): char * p_errors argument is NULL\n");
         exit(1);
     }
     parser->current = 0;
@@ -54,6 +55,7 @@ void free_parser(Parser * parser) {
 
     parser->tokens = NULL;
     parser->current = 0;
+    parser->p_errors = NULL;
 
     free(parser);
 }

@@ -19,7 +19,7 @@ typedef struct Scanner {
   size_t start;
   size_t current;
   size_t line;
-  char * p_errors;
+  char * scan_errors;
   map_t * keyword_map;
 } Scanner;
 

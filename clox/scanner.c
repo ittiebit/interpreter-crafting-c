@@ -64,10 +64,13 @@ Scanner * create_scanner(char * source, char * p_errors) {
 
     pscan->source = source;
 
-    pscan->tokens = malloc(sizeof(Token *) * SOURCE_BUF_SIZE);
+    pscan->tokens = malloc(sizeof(Token) * SOURCE_BUF_SIZE);
     if (pscan->tokens == NULL) {
         fprintf(stderr, "ERROR in scanner.c - create_scanner(): pscan->tokens = malloc() failure\nexiting...\n");
         exit(1);
+    }
+    for (size_t i = 0; i < SOURCE_BUF_SIZE; i++) {
+        pscan->tokens[i] = NULL;
     }
 
     pscan->token_list_size = 0;
@@ -87,7 +90,7 @@ Scanner * create_scanner(char * source, char * p_errors) {
         fprintf(stderr, "ERROR in scanner.c - create_scanner(): char * p_errors argument is NULL\n");
         exit(1);
     }
-    pscan->p_errors = p_errors;
+    pscan->scan_errors = p_errors;
 
     return pscan;
 }
@@ -111,8 +114,8 @@ void free_scanner(Scanner * scanner) {
     hashmap_free(scanner->keyword_map);
     scanner->keyword_map = NULL;
 
-    memset(scanner->p_errors, 0x0, sizeof(char));
-    scanner->p_errors = NULL;
+    memset(scanner->scan_errors, 0x0, sizeof(char));
+    scanner->scan_errors = NULL;
 
     memset(scanner->source, 0x0, sizeof(char) * SOURCE_BUF_SIZE);
     scanner->source = NULL; // source text buffer not allocated for now
@@ -188,7 +191,7 @@ void scan_token(Scanner * scanner) {
                 identifier(scanner);
             } else {
                 //printf("Unexpected character: %c\n", c);
-                scan_error(scanner->line, "Unexpected character.", scanner->p_errors);
+                scan_error(scanner->line, "Unexpected character.", scanner->scan_errors);
                 return;
             }
             break;
@@ -278,8 +281,8 @@ void comment(Scanner * scanner) {
         while (peek(scanner) != '\n' && !is_at_end(scanner)) advance(scanner);
     } else if (match(scanner, '*')) {
         /*
-                    A multi-line comment
-                */
+            A multi-line comment
+        */
         int comment_depth = 1;
         while (!is_at_end(scanner) && comment_depth > 0) {
             if (peek(scanner) == '/' && peek_next(scanner) == '*') {
@@ -303,7 +306,7 @@ void comment(Scanner * scanner) {
             advance(scanner);
         }
         if (is_at_end(scanner) && comment_depth > 0) {
-            scan_error(scanner->line, "Unterminated multi-line comment", scanner->p_errors);
+            scan_error(scanner->line, "Unterminated multi-line comment", scanner->scan_errors);
         }
     } else {
         add_token(scanner, SLASH, NULL);
@@ -481,10 +484,13 @@ Token * create_token(TokenType type, char * lexeme, void * literal, size_t line)
 void free_token(Token * token) {
     if (token->lexeme != NULL) {
         free(token->lexeme);
+        token->lexeme = NULL;
     }
     if (token->literal != NULL) {
         free(token->literal);
+        token->literal = NULL;
     }
     free(token);
+    token = NULL;
     return;
 }
