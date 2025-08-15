@@ -64,9 +64,19 @@ char * stringify(Value * val) {
     if (val->value == NULL || val->type == VAL_NIL)  {
         return strdup("nil");
     }
+    char * str;
+
+    if (val->type == VAL_BOOLEAN) {
+        if (*(boolean*)val->value) {
+            str = strdup("true");
+        } else {
+            str = strdup("false");
+        }
+        return str;
+    }
 
     if (val->type == VAL_DOUBLE) {
-        char * str = malloc(sizeof(char) * 50);
+        str = malloc(sizeof(char) * 50);
         if (str == NULL) {
             return NULL;
         }
@@ -236,12 +246,12 @@ Value * visit_binary_expr(Interpreter * inter, Expr * expr) {
     if (right_val->type == VAL_DOUBLE && left_val->type == VAL_DOUBLE) {
         double right_num = *(double*)right_val->value;
         double left_num = *(double*)left_val->value;
-        double result = 0;
+        double num_result = 0;
         switch (type) {
             case MINUS:
                 check_number_operand(inter, binary_expr->token, right_val);
-                result = left_num - right_num;
-                return create_value(&result, sizeof(double), VAL_DOUBLE);
+                num_result = left_num - right_num;
+                return create_value(&num_result, sizeof(double), VAL_DOUBLE);
             case PLUS:
                 // Concatenate two strings
                 if (right_val->type == VAL_STRING && left_val->type == VAL_STRING) {
@@ -255,42 +265,47 @@ Value * visit_binary_expr(Interpreter * inter, Expr * expr) {
                     strcat(concatenated, right_str);
                     return create_value(concatenated, sizeof(strlen(concatenated)), VAL_STRING);
                 } else if (right_val->type == VAL_DOUBLE && left_val->type == VAL_DOUBLE) {
-                    result = left_num + right_num;
-                    return create_value(&result, sizeof(double), VAL_DOUBLE);
+                    num_result = left_num + right_num;
+                    return create_value(&num_result, sizeof(double), VAL_DOUBLE);
                 }
                 runtime_error(inter, binary_expr->token, "Operands must be two numbers or two strings.");
                 break;
             case SLASH:
                 check_number_operands(inter, binary_expr->token, left_val, right_val);
-                result = left_num / right_num;
-                return create_value(&result, sizeof(double), VAL_DOUBLE);
+                num_result = left_num / right_num;
+                return create_value(&num_result, sizeof(double), VAL_DOUBLE);
             case STAR:
                 check_number_operands(inter, binary_expr->token, left_val, right_val);
-                result = left_num * right_num;
-                return create_value(&result, sizeof(double), VAL_DOUBLE);
+                num_result = left_num * right_num;
+                return create_value(&num_result, sizeof(double), VAL_DOUBLE);
+            default: break;
+        }
+
+        boolean bool_result = VALUE_FALSE;
+        switch (type) {
             case EQUAL:
-                result = left_num == right_num;
-                return create_value(&result, sizeof(boolean), VAL_BOOLEAN);
+                bool_result = left_num == right_num;
+                return create_value(&bool_result, sizeof(boolean), VAL_BOOLEAN);
                 break;
             case GREATER:
                 check_number_operands(inter, binary_expr->token, left_val, right_val);
-                result = left_num > right_num;
-                return create_value(&result, sizeof(boolean), VAL_BOOLEAN);
+                bool_result = left_num > right_num;
+                return create_value(&bool_result, sizeof(boolean), VAL_BOOLEAN);
                 break;
             case LESS:
                 check_number_operands(inter, binary_expr->token, left_val, right_val);
-                result = left_num < right_num;
-                return create_value(&result, sizeof(boolean), VAL_BOOLEAN);
+                bool_result = left_num < right_num;
+                return create_value(&bool_result, sizeof(boolean), VAL_BOOLEAN);
                 break;
             case LESS_EQUAL:
                 check_number_operands(inter, binary_expr->token, left_val, right_val);
-                result = left_num <= right_num;
-                return create_value(&result, sizeof(boolean), VAL_BOOLEAN);
+                bool_result = left_num <= right_num;
+                return create_value(&bool_result, sizeof(boolean), VAL_BOOLEAN);
                 break;
             case GREATER_EQUAL:
                 check_number_operands(inter, binary_expr->token, left_val, right_val);
-                result = left_num >= right_num;
-                return create_value(&result, sizeof(boolean), VAL_BOOLEAN);
+                bool_result = left_num >= right_num;
+                return create_value(&bool_result, sizeof(boolean), VAL_BOOLEAN);
                 break;
             default: break;
         }
@@ -319,18 +334,12 @@ Value * visit_ternary_expr(Interpreter * inter, Expr * expr) {
 
     Ternary_expr * ternary_expr = (Ternary_expr*)expr->expr;
 
-    //printf_with_indent(depth, "[Ternary] ");
-
     TokenType type_left = ternary_expr->token_left->type;
     TokenType type_right = ternary_expr->token_right->type;
     if (type_left == QUESTION && type_right == COLON) {
-        printf("? :\n");
     } else {
-        printf("undefined\n");
     }
 
-    //printf_with_indent(depth, "LEX: %s\n", binary_expr->token->lexeme);
-    //printf_with_indent(depth, "LIT: NOT IMPL\n");
     return NULL;
 }
 
@@ -398,8 +407,6 @@ Value * visit_grouping_expr(Interpreter * inter, Expr * expr) {
 
     //TokenType type = grouping_expr->type;
 
-    //printf_with_indent(depth, "[Grouping] ");
-
     //switch (type) {
     //    case LEFT_PAREN:
     //        printf("()\n");
@@ -408,15 +415,10 @@ Value * visit_grouping_expr(Interpreter * inter, Expr * expr) {
     //        printf("undefined\n");
     //        break;
     //}
-
-    //printf_with_indent(depth, "LEX: %s\n", grouping_expr->expr);
-    //printf_with_indent(depth, "LIT: NOT IMPL\n");
     return NULL;
 }
 
-// TODO later
 Value * visit_operator_expr(Interpreter * inter, Expr * expr) {
-    //printf_with_indent(depth, "[Operator]\n");
     return NULL;
 }
 
