@@ -1,8 +1,9 @@
 CC := gcc
 CXX := gcc
 CFLAGS := -g
+#CFLAGS := -g -DDEBUG
 #CFLAGS := -Wall -Wextra
-#LDFLAGS := 
+LDFLAGS := -lm
 
 TARGET_EXEC := main
 

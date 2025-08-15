@@ -5,12 +5,23 @@
 #include "./scanner.h"
 #include "./definitions.h"
 #include "./parser.h"
+#include "./expr.h"
+#include "./types.h"
+#include "./interpreter.h"
+
+#ifdef DEBUG
 #include "../utils/ast-printer.h"
-#include "expr.h"
+#endif
+
+typedef struct Clox_errors_t {
+    char * scan_errors;
+    char * parse_errors;
+    char * runtime_errors;
+} Clox_errors;
 
 void run_prompt();
-void run(char * source);
 void run_file(char * path);
+Clox_errors run(char * source);
 
 int main(int argc, char ** argv) {
     if (argc > 2) {
@@ -46,11 +57,18 @@ void run_prompt() {
     return;
 }
 
-void run(char * source) {
-    char had_error = 0;
-    char * p_errors = &had_error;
+Clox_errors run(char * source) {
+    boolean had_scan_error = VALUE_FALSE;
+    boolean had_parse_error = VALUE_FALSE;
+    boolean had_runtime_error = VALUE_FALSE;
 
-    Scanner * scanner = create_scanner(source, p_errors);
+    Clox_errors errors = {
+        .scan_errors = &had_scan_error,
+        .parse_errors = &had_parse_error,
+        .runtime_errors = &had_runtime_error,
+    };
+
+    Scanner * scanner = create_scanner(source, errors.scan_errors);
     Token ** tokens = scan_tokens(scanner);
 
     // // Print the tokens.
@@ -61,31 +79,36 @@ void run(char * source) {
     //     printf("Token: %s\n", to_string(tokens[i]));
     // }
 
-    Parser * parser = create_parser(tokens, p_errors);
-    Expr * expr = parse(parser);
+    Parser * parser = create_parser(tokens, errors.parse_errors);
+    Expr * ast = parse(parser);
 
     /* DEBUGGING */
+    #ifdef DEBUG
+    print_ast(ast, 0);
 
-    print_ast(expr, 0);
-
+    if (*errors.scan_errors != 0) {
+        fprintf(stderr, "had_scan_error flag set!\n");
+    }
+    if (*errors.parse_errors != 0) {
+        fprintf(stderr, "had_parse_error flag set!\n");
+    }
+    #endif
     /*************/
 
-    if (had_error != 0) {
-        fprintf(stderr, "had_error flag set!\n");
-    }
-
+    Interpreter * inter = create_interpreter(errors.runtime_errors);
+    interpret(inter, ast);
 
     for (int i = 0; i < SOURCE_BUF_SIZE; i++) {
         if (tokens[i] == NULL) {
-            return;
+            return errors;
         }
         free_token(tokens[i]);
     }
     free_scanner(scanner);
     free_parser(parser);
-    free_ast(expr);
+    free_ast(ast);
 
-    return;
+    return errors;
 }
 
 void run_file(char * path) {
@@ -99,5 +122,11 @@ void run_file(char * path) {
 
     fread(bytes, size, sizeof(char), fptr);
 
-    run(bytes);
+    Clox_errors errors = run(bytes);
+    if (*errors.scan_errors || *errors.parse_errors) {
+        exit(65);
+    }
+    if (*errors.runtime_errors) {
+        exit(70);
+    }
 }
