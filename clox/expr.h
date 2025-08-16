@@ -83,7 +83,28 @@ void free_unary_expr(Expr * expr);
 void free_ternary_expr(Expr * expr);
 void free_literal_expr(Expr * expr);
 void free_grouping_expr(Expr * expr);
-
 void free_ast(Expr * expr);
+
+
+/*
+*   Statements
+*/
+
+typedef enum Stmt_type_t {
+    EXPR_STMT,
+    PRINT_STMT,
+} Stmt_type;
+
+typedef struct Stmt_t {
+    Stmt_type stmt_type;
+    Expr * expr;
+    struct Stmt_t * next_stmt;
+    struct Stmt_t * prev_stmt;
+} Stmt;
+
+Stmt * new_stmt(Stmt_type stmt_type, Expr * expr);
+void free_stmt(Stmt * stmt);
+void add_stmt(Stmt * head_stmt, Stmt * new_stmt);
+void free_stmt_list(Stmt * stmt);
 
 #endif //EXPR_H

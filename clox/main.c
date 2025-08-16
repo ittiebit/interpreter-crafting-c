@@ -72,7 +72,12 @@ Clox_errors run(char * source) {
     }
 
     Parser * parser = create_parser(tokens, errors.parse_errors);
-    Expr * ast = parse(parser);
+    Expr * ast = parse(parser)->expr;
+    free_parser(parser);
+
+    if (*errors.parse_errors != VALUE_FALSE || *errors.scan_errors != VALUE_FALSE) {
+        return errors;
+    }
 
     /* DEBUGGING */
     #ifdef DEBUG
@@ -87,7 +92,6 @@ Clox_errors run(char * source) {
     #endif
     /*************/
 
-    free_parser(parser);
 
     Interpreter * inter = create_interpreter(errors.runtime_errors);
     interpret(inter, ast);

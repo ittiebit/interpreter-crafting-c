@@ -230,4 +230,76 @@ void free_ast(Expr * expr) {
     }
 }
 
+/*
+*   Statements
+*/
 
+Stmt * new_stmt(Stmt_type stmt_type, Expr * expr) {
+    if (expr == NULL) {
+        fprintf(stderr, "[INTERNAL ERROR] expr.c - new_stmt(): Expr * expr is NULL\n");
+        exit(1);
+    }
+    Stmt * stmt = malloc(sizeof(Stmt));
+    if (stmt == NULL) {
+        fprintf(stderr, "[INTERNAL ERROR] expr.c - new_stmt(): Failed to allocate Stmt * stmt\n");
+        exit(1);
+    }
+
+    stmt->stmt_type = stmt_type;
+    stmt->expr = expr;
+    stmt->next_stmt = NULL;
+    stmt->prev_stmt = NULL;
+
+    return stmt;
+}
+
+void add_stmt(Stmt * head_stmt, Stmt * new_stmt) {
+    if (head_stmt == NULL || new_stmt == NULL) {
+        return;
+    }
+
+    if (head_stmt->next_stmt == NULL) {
+        head_stmt->next_stmt = new_stmt;
+        head_stmt->prev_stmt = new_stmt;
+        new_stmt->next_stmt = head_stmt;
+        new_stmt->prev_stmt = head_stmt;
+    } else {
+        Stmt * tail = head_stmt->prev_stmt;
+        new_stmt->prev_stmt = tail;
+        new_stmt->next_stmt = head_stmt;
+        tail->next_stmt = new_stmt;
+        head_stmt->prev_stmt = new_stmt;
+    }
+    new_stmt->next_stmt = NULL;
+}
+
+/* Free the AST under stmt->expr before! */
+void free_stmt(Stmt * stmt) {
+    if (stmt == NULL) {
+        return;
+    }
+    stmt->expr = NULL; // should be freed by freeing the ast
+    stmt->stmt_type = 0;
+}
+
+void free_stmt_list(Stmt * stmt) {
+    if (stmt == NULL) {
+        return;
+    }
+
+    Stmt * cur_stmt = stmt;
+
+    if (cur_stmt->next_stmt == NULL) {
+        free(cur_stmt);
+        return;
+    }
+
+    while (cur_stmt->next_stmt != NULL) {
+        cur_stmt = cur_stmt->next_stmt;
+        free(cur_stmt->prev_stmt);
+        free_ast(cur_stmt->prev_stmt->expr);
+        cur_stmt->prev_stmt = NULL;
+    }
+    free(cur_stmt);
+    free_ast(cur_stmt->expr);
+}

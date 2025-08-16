@@ -15,6 +15,10 @@ Token * p_previous(Parser * parser);
 Token * p_consume(Parser * parser, TokenType type, char * message);
 void * p_error(Token * token, char * message, char * p_errors);
 
+Stmt * statement(Parser * parser);
+Stmt * print_stmt(Parser * parser);
+Stmt * expression_stmt(Parser * parser);
+
 Expr * expression(Parser * parser);
 Expr * comma(Parser * parser);
 Expr * ternary(Parser * parser);
@@ -60,13 +64,17 @@ void free_parser(Parser * parser) {
     free(parser);
 }
 
-Expr * parse(Parser * parser) {
-    Expr * expr = NULL;
-    if ((expr = expression(parser)) != NULL) {
-        return expr;
-    } else {
-        return NULL;
+/* Returns a doubly-linked non-circular list of statements */
+Stmt * parse(Parser * parser) {
+    Stmt * head_stmt = NULL;
+    while (!p_isAtEnd(parser)) {
+        if (head_stmt == NULL) {
+            head_stmt = statement(parser);
+        } else {
+            add_stmt(head_stmt, statement(parser));
+        }
     }
+    return head_stmt;
 }
 
 char p_match(Parser * parser, TokenType token_type) {
@@ -135,6 +143,26 @@ void synchronize(Parser * parser) {
         }
         p_advance(parser);
     }
+}
+
+
+Stmt * statement(Parser * parser) {
+    if (p_match(parser, PRINT)) {
+        return print_stmt(parser);
+    }
+    return expression_stmt(parser);
+}
+
+Stmt * print_stmt(Parser * parser) {
+    Expr * value = expression(parser);
+    p_consume(parser, SEMICOLON, "Expect ';' after value.");
+    return new_stmt(PRINT_STMT, value);
+}
+
+Stmt * expression_stmt(Parser * parser) {
+    Expr * value = expression(parser);
+    p_consume(parser, SEMICOLON, "Expect ';' after value.");
+    return new_stmt(EXPR_STMT, value);
 }
 
 Expr * expression(Parser * parser) {
