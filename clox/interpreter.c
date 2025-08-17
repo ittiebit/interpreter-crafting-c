@@ -271,7 +271,7 @@ Value * accept_expr(Interpreter * inter, Expr * expr) {
 }
 
 Value * visit_binary_expr(Interpreter * inter, Expr * expr) {
-    Binary_expr * binary_expr = (Binary_expr*)expr->expr;
+    BinaryExpr * binary_expr = (BinaryExpr*)expr->expr;
 
     Value * right_val = evaluate(inter, binary_expr->right);
     Value * left_val = evaluate(inter, binary_expr->left);
@@ -366,7 +366,7 @@ Value * visit_binary_expr(Interpreter * inter, Expr * expr) {
 Value * visit_ternary_expr(Interpreter * inter, Expr * expr) {
     return NULL;
 
-    Ternary_expr * ternary_expr = (Ternary_expr*)expr->expr;
+    TernaryExpr * ternary_expr = (TernaryExpr*)expr->expr;
 
     TokenType type_left = ternary_expr->token_left->type;
     TokenType type_right = ternary_expr->token_right->type;
@@ -378,7 +378,7 @@ Value * visit_ternary_expr(Interpreter * inter, Expr * expr) {
 }
 
 Value * visit_unary_expr(Interpreter * inter, Expr * expr) {
-    Unary_expr * unary_expr = (Unary_expr*)expr->expr;
+    UnaryExpr * unary_expr = (UnaryExpr*)expr->expr;
     TokenType type = unary_expr->token->type;
 
     Value * right_val = evaluate(inter, unary_expr->expr);
@@ -402,8 +402,8 @@ Value * visit_unary_expr(Interpreter * inter, Expr * expr) {
 }
 
 Value * visit_literal_expr(Interpreter * inter, Expr * expr) {
-    Literal_expr * literal_expr = (Literal_expr*)expr->expr;
-    Literal_type type = literal_expr->literal_type;
+    LiteralExpr * literal_expr = (LiteralExpr*)expr->expr;
+    LiteralType type = literal_expr->literal_type;
 
     double num;
     boolean boolean;
@@ -435,7 +435,7 @@ Value * visit_literal_expr(Interpreter * inter, Expr * expr) {
 }
 
 Value * visit_grouping_expr(Interpreter * inter, Expr * expr) {
-    Grouping_expr * grouping_expr = (Grouping_expr*)expr->expr;
+    GroupingExpr * grouping_expr = (GroupingExpr*)expr->expr;
 
     return evaluate(inter, grouping_expr->expr);
 
@@ -458,12 +458,12 @@ Value * visit_operator_expr(Interpreter * inter, Expr * expr) {
 
 
 void visit_expression_stmt(Interpreter * inter, Stmt * stmt) {
-    evaluate(inter, stmt->expr);
+    evaluate(inter, ((ExprStmt*)stmt->stmt)->expr);
     return;
 }
 
 void visit_print_stmt(Interpreter * inter, Stmt * stmt) {
-    Value * val = evaluate(inter, stmt->expr);
+    Value * val = evaluate(inter, ((PrintStmt*)stmt->stmt)->expr);
     fprintf(stdout, "%s\n", stringify(val));
     return;
 }

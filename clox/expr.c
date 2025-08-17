@@ -15,7 +15,7 @@ Expr * new_binary_expr(Expr * left, Token * operator, Expr * right) {
         exit(1);
     }
 
-    Binary_expr * binary_expr = malloc(sizeof(Binary_expr));
+    BinaryExpr * binary_expr = malloc(sizeof(BinaryExpr));
     if (binary_expr == NULL) {
         exit(1);
     }
@@ -31,7 +31,7 @@ Expr * new_binary_expr(Expr * left, Token * operator, Expr * right) {
 }
 
 void free_binary_expr(Expr * expr) {
-    Binary_expr * binary_expr = expr->expr;
+    BinaryExpr * binary_expr = expr->expr;
     binary_expr->token = NULL;
     binary_expr->left = NULL;
     binary_expr->right = NULL;
@@ -51,7 +51,7 @@ Expr * new_unary_expr(Token * operator, Expr * right) {
         exit(1);
     }
 
-    Unary_expr * unary_expr = malloc(sizeof(Unary_expr));
+    UnaryExpr * unary_expr = malloc(sizeof(UnaryExpr));
     if (unary_expr == NULL) {
         exit(1);
     }
@@ -66,7 +66,7 @@ Expr * new_unary_expr(Token * operator, Expr * right) {
 }
 
 void free_unary_expr(Expr * expr) {
-    Unary_expr * unary_expr = expr->expr;
+    UnaryExpr * unary_expr = expr->expr;
     unary_expr->token = NULL;
     unary_expr->expr = NULL;
     free(unary_expr);
@@ -85,7 +85,7 @@ Expr * new_ternary_expr(Expr * left, Token * op_left, Expr * mid, Token * op_rig
         exit(1);
     }
 
-    Ternary_expr * ternary_expr = malloc(sizeof(Ternary_expr));
+    TernaryExpr * ternary_expr = malloc(sizeof(TernaryExpr));
     if (ternary_expr == NULL) {
         exit(1);
     }
@@ -103,7 +103,7 @@ Expr * new_ternary_expr(Expr * left, Token * op_left, Expr * mid, Token * op_rig
 }
 
 void free_ternary_expr(Expr * expr) {
-    Ternary_expr * ternary_expr = expr->expr;
+    TernaryExpr * ternary_expr = expr->expr;
     ternary_expr->token_left = NULL;
     ternary_expr->token_right = NULL;
     ternary_expr->left = NULL;
@@ -121,7 +121,7 @@ Expr * new_literal_expr(TokenType type, void * literal) {
         exit(1);
     }
 
-    Literal_expr * literal_expr = malloc(sizeof(Literal_expr));
+    LiteralExpr * literal_expr = malloc(sizeof(LiteralExpr));
     if (literal_expr == NULL) {
         exit(1);
     }
@@ -159,7 +159,7 @@ Expr * new_literal_expr(TokenType type, void * literal) {
 }
 
 void free_literal_expr(Expr * expr) {
-    Literal_expr * literal_expr = expr->expr;
+    LiteralExpr * literal_expr = expr->expr;
     if (literal_expr->value != NULL) {
         free(literal_expr->value);
     }
@@ -179,7 +179,7 @@ Expr * new_grouping_expr(TokenType type, Expr * expr_val) {
         exit(1);
     }
 
-    Grouping_expr * grouping_expr = malloc(sizeof(Grouping_expr));
+    GroupingExpr * grouping_expr = malloc(sizeof(GroupingExpr));
     if (grouping_expr == NULL) {
         exit(1);
     }
@@ -193,7 +193,7 @@ Expr * new_grouping_expr(TokenType type, Expr * expr_val) {
 }
 
 void free_grouping_expr(Expr * expr) {
-    Grouping_expr * grouping_expr = expr->expr;
+    GroupingExpr * grouping_expr = expr->expr;
     grouping_expr->expr = NULL; // surely dont have to free it
     free(grouping_expr);
     expr->expr = NULL;
@@ -210,16 +210,16 @@ void free_ast(Expr * expr) {
         break;
     case EXPR_GROUPING:
         free_grouping_expr(expr);
-        free_ast(((Grouping_expr*)expr->expr)->expr);
+        free_ast(((GroupingExpr*)expr->expr)->expr);
         break;
     case EXPR_UNARY:
         free_unary_expr(expr);
-        free_ast(((Unary_expr*)expr->expr)->expr);
+        free_ast(((UnaryExpr*)expr->expr)->expr);
         break;
     case EXPR_BINARY:
         free_binary_expr(expr);
-        free_ast(((Binary_expr*)expr->expr)->left);
-        free_ast(((Binary_expr*)expr->expr)->right);
+        free_ast(((BinaryExpr*)expr->expr)->left);
+        free_ast(((BinaryExpr*)expr->expr)->right);
         break;
     case EXPR_OPERATOR:
         //free_operator_expr(expr);
@@ -234,23 +234,133 @@ void free_ast(Expr * expr) {
 *   Statements
 */
 
-Stmt * new_stmt(Stmt_type stmt_type, Expr * expr) {
-    if (expr == NULL) {
-        fprintf(stderr, "[INTERNAL ERROR] expr.c - new_stmt(): Expr * expr is NULL\n");
-        exit(1);
-    }
-    Stmt * stmt = malloc(sizeof(Stmt));
-    if (stmt == NULL) {
-        fprintf(stderr, "[INTERNAL ERROR] expr.c - new_stmt(): Failed to allocate Stmt * stmt\n");
-        exit(1);
-    }
+//Stmt * new_stmt(StmtType stmt_type, Expr * expr) {
+//    if (expr == NULL) {
+//        fprintf(stderr, "[INTERNAL ERROR] expr.c - new_stmt(): Expr * expr is NULL\n");
+//        exit(1);
+//    }
+//    Stmt * stmt = malloc(sizeof(Stmt));
+//    if (stmt == NULL) {
+//        fprintf(stderr, "[INTERNAL ERROR] expr.c - new_stmt(): Failed to allocate Stmt * stmt\n");
+//        exit(1);
+//    }
+//
+//    switch (stmt_type) {
+//        case PRINT_STMT:
+//            if ((stmt->stmt = malloc(sizeof(PrintStmt))) == NULL) {
+//                fprintf(stderr, "[INTERNAL ERROR] expr.c - new_stmt(): Failed to allocate PrintStmt\n");
+//            }
+//            stmt = new_print_stmt()
+//            break;
+//        case EXPR_STMT:
+//            if ((stmt->stmt = malloc(sizeof(ExprStmt))) == NULL) {
+//                fprintf(stderr, "[INTERNAL ERROR] expr.c - new_stmt(): Failed to allocate ExprStmt\n");
+//            }
+//            break;
+//        case VAR_STMT:
+//            if ((stmt->stmt = malloc(sizeof(VarStmt))) == NULL) {
+//                fprintf(stderr, "[INTERNAL ERROR] expr.c - new_stmt(): Failed to allocate VarStmt\n");
+//            }
+//            break;
+//    }
+//    stmt->stmt_type = stmt_type;
+//    stmt->next_stmt = NULL;
+//    stmt->prev_stmt = NULL;
+//
+//    return stmt;
+//}
 
-    stmt->stmt_type = stmt_type;
-    stmt->expr = expr;
+Stmt * new_print_stmt(Expr * expr) {
+    PrintStmt * print_stmt = malloc(sizeof(PrintStmt));
+    if (print_stmt == NULL) {
+        fprintf(stderr, "[INTERNAL ERROR] expr.c - new_print_stmt(): Failed to allocate PrintStmt\n");
+        return NULL;
+    }
+    print_stmt->expr = expr;
+
+    Stmt * stmt = malloc(sizeof(Stmt));
+    if (print_stmt == NULL) {
+        fprintf(stderr, "[INTERNAL ERROR] expr.c - new_print_stmt(): Failed to allocate Stmt\n");
+        return NULL;
+    }
+    stmt->stmt = print_stmt;
+    stmt->stmt_type = PRINT_STMT;
     stmt->next_stmt = NULL;
     stmt->prev_stmt = NULL;
-
     return stmt;
+}
+
+
+void free_print_stmt(PrintStmt * stmt) {
+    if (stmt->expr == NULL) {
+        return;
+    }
+    if (stmt->expr != NULL) {
+        free_ast(stmt->expr);
+        stmt->expr = NULL;
+    }
+    free(stmt);
+}
+
+Stmt * new_expr_stmt(Expr * expr) {
+    ExprStmt * expr_stmt = malloc(sizeof(ExprStmt));
+    if (expr_stmt == NULL) {
+        fprintf(stderr, "[INTERNAL ERROR] expr.c - new_expr_stmt(): Failed to allocate ExprStmt\n");
+        return NULL;
+    }
+    expr_stmt->expr = expr;
+
+    Stmt * stmt = malloc(sizeof(Stmt));
+    if (expr_stmt == NULL) {
+        fprintf(stderr, "[INTERNAL ERROR] expr.c - new_expr_stmt(): Failed to allocate Stmt\n");
+        return NULL;
+    }
+    stmt->stmt = expr_stmt;
+    stmt->stmt_type = EXPR_STMT;
+    stmt->next_stmt = NULL;
+    stmt->prev_stmt = NULL;
+    return stmt;
+}
+
+void free_expr_stmt(ExprStmt * stmt) {
+    if (stmt == NULL) {
+        return;
+    }
+    if (stmt->expr != NULL) {
+        free_ast(stmt->expr);
+        stmt->expr = NULL;
+    }
+    free(stmt);
+}
+
+Stmt * new_var_stmt(Token * name, Expr * initializer) {
+    VarStmt * var_stmt = malloc(sizeof(VarStmt));
+    if (var_stmt == NULL) {
+        fprintf(stderr, "[INTERNAL ERROR] expr.c - new_var_stmt(): Failed to allocate VarStmt\n");
+        return NULL;
+    }
+    var_stmt->initializer = initializer;
+    var_stmt->name = name;
+
+    Stmt * stmt = malloc(sizeof(Stmt));
+    if (var_stmt == NULL) {
+        fprintf(stderr, "[INTERNAL ERROR] expr.c - new_var_stmt(): Failed to allocate Stmt\n");
+        return NULL;
+    }
+    stmt->stmt = var_stmt;
+    stmt->stmt_type = VAR_STMT;
+    return stmt;
+}
+
+void free_var_stmt(VarStmt * stmt) {
+    if (stmt == NULL) {
+        return;
+    }
+    if (stmt->initializer != NULL) {
+        free_ast(stmt->initializer);
+        stmt->initializer = NULL;
+    }
+    free(stmt);
 }
 
 void add_stmt(Stmt * head_stmt, Stmt * new_stmt) {
@@ -273,13 +383,34 @@ void add_stmt(Stmt * head_stmt, Stmt * new_stmt) {
     new_stmt->next_stmt = NULL;
 }
 
-/* Free the AST under stmt->expr before! */
 void free_stmt(Stmt * stmt) {
     if (stmt == NULL) {
         return;
     }
-    stmt->expr = NULL; // should be freed by freeing the ast
+    switch (stmt->stmt_type) {
+        case PRINT_STMT:
+            break;
+        case EXPR_STMT:
+            if (((ExprStmt*)stmt->stmt)->expr != NULL) {
+                free_ast(((ExprStmt*)stmt->stmt)->expr);
+                ((ExprStmt*)stmt->stmt)->expr = NULL;
+            }
+            break;
+        case VAR_STMT:
+            if (((VarStmt*)stmt->stmt)->initializer != NULL) {
+                free_ast(((VarStmt*)stmt->stmt)->initializer);
+                ((VarStmt*)stmt->stmt)->initializer = NULL;
+                free(((VarStmt*)stmt->stmt)->name);
+                ((VarStmt*)stmt->stmt)->name = NULL;
+            }
+            break;
+    }
+    if (stmt->stmt != NULL) {
+        free(stmt->stmt);
+        stmt->stmt = NULL;
+    }
     stmt->stmt_type = 0;
+    free(stmt);
 }
 
 void free_stmt_list(Stmt * stmt) {
@@ -290,16 +421,14 @@ void free_stmt_list(Stmt * stmt) {
     Stmt * cur_stmt = stmt;
 
     if (cur_stmt->next_stmt == NULL) {
-        free(cur_stmt);
+        free_stmt(cur_stmt);
         return;
     }
 
     while (cur_stmt->next_stmt != NULL) {
         cur_stmt = cur_stmt->next_stmt;
-        free(cur_stmt->prev_stmt);
-        free_ast(cur_stmt->prev_stmt->expr);
+        free_stmt(cur_stmt->prev_stmt);
         cur_stmt->prev_stmt = NULL;
     }
-    free(cur_stmt);
-    free_ast(cur_stmt->expr);
+    free_stmt(cur_stmt);
 }

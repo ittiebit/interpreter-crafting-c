@@ -3,17 +3,17 @@
 
 #include "./token.h"
 
-typedef enum Expr_type_t {
+typedef enum ExprType_t {
     EXPR_LITERAL,
     EXPR_GROUPING,
     EXPR_UNARY,
     EXPR_BINARY,
     EXPR_TERNARY,
     EXPR_OPERATOR,
-} Expr_type;
+} ExprType;
 
 typedef struct Expr_t {
-    Expr_type expr_type;
+    ExprType expr_type;
     void * expr;
 } Expr;
 
@@ -31,46 +31,50 @@ typedef struct Expr_t {
                    | "+"  | "-"  | "*" | "/" | ",";
 */
 
-typedef enum Literal_type_t {
+typedef enum LiteralType_t {
     LITERAL_NUMBER = 0,
     LITERAL_STRING,
     LITERAL_TRUE,
     LITERAL_FALSE,
     LITERAL_NIL,
-} Literal_type;
+} LiteralType;
 
-typedef struct Literal_expr_t {
-    Literal_type literal_type;
+typedef struct LiteralExpr_t {
+    LiteralType literal_type;
     void * value;
-} Literal_expr;
+} LiteralExpr;
 
-typedef struct Grouping_expr_t {
+typedef struct GroupingExpr_t {
     Expr * expr;
     TokenType type;
-} Grouping_expr;
+} GroupingExpr;
 
-typedef struct Unary_expr_t {
+typedef struct UnaryExpr_t {
     Token * token;
     Expr * expr;
-} Unary_expr;
+} UnaryExpr;
 
-typedef struct Binary_expr_t {
+typedef struct BinaryExpr_t {
     Token * token;
     Expr * left;
     Expr * right;
-} Binary_expr;
+} BinaryExpr;
 
-typedef struct Ternary_expr_t {
+typedef struct TernaryExpr_t {
     Token * token_left;
     Token * token_right;
     Expr * left;
     Expr * mid;
     Expr * right;
-} Ternary_expr;
+} TernaryExpr;
 
-typedef struct Operator_expr_t {
+typedef struct OperatorExpr_t {
     Token * token;
-} Operator_expr_t;
+} OperatorExpr;
+
+typedef struct VariableExpr_t {
+    Token * name;
+} VariableExpr;
 
 
 Expr * new_binary_expr(Expr * left, Token * op, Expr * right);
@@ -90,21 +94,42 @@ void free_ast(Expr * expr);
 *   Statements
 */
 
-typedef enum Stmt_type_t {
+typedef enum StmtType_t {
     EXPR_STMT,
     PRINT_STMT,
-} Stmt_type;
+    VAR_STMT,
+} StmtType;
 
 typedef struct Stmt_t {
-    Stmt_type stmt_type;
-    Expr * expr;
+    StmtType stmt_type;
+    void * stmt;
     struct Stmt_t * next_stmt;
     struct Stmt_t * prev_stmt;
 } Stmt;
 
-Stmt * new_stmt(Stmt_type stmt_type, Expr * expr);
+typedef struct PrintStmt_t {
+    Expr * expr;
+} PrintStmt;
+
+typedef struct ExprStmt_t {
+    Expr * expr;
+} ExprStmt;
+
+typedef struct VarStmt_t {
+    Token * name;
+    Expr * initializer;
+} VarStmt;
+
+//Stmt * new_stmt(StmtType stmt_type, Expr * expr);
 void free_stmt(Stmt * stmt);
 void add_stmt(Stmt * head_stmt, Stmt * new_stmt);
 void free_stmt_list(Stmt * stmt);
+
+Stmt * new_print_stmt(Expr * expr);
+Stmt * new_expr_stmt(Expr * expr);
+Stmt * new_var_stmt(Token * name, Expr * initializer);
+void free_print_stmt(PrintStmt * stmt);
+void free_expr_stmt(ExprStmt * stmt);
+void free_var_stmt(VarStmt * stmt);
 
 #endif //EXPR_H

@@ -30,22 +30,22 @@ void print_ast(Expr * expr, size_t depth) {
             break;
         case EXPR_GROUPING:
             print_grouping_expr(expr, depth++);
-            print_ast(((Grouping_expr*)expr->expr)->expr, depth++);
+            print_ast(((GroupingExpr*)expr->expr)->expr, depth++);
             break;
         case EXPR_UNARY:
             print_unary_expr(expr, depth++);
-            print_ast(((Unary_expr*)expr->expr)->expr, depth++);
+            print_ast(((UnaryExpr*)expr->expr)->expr, depth++);
             break;
         case EXPR_BINARY:
             print_binary_expr(expr, depth++);
-            print_ast(((Binary_expr*)expr->expr)->left, depth);
-            print_ast(((Binary_expr*)expr->expr)->right, depth);
+            print_ast(((BinaryExpr*)expr->expr)->left, depth);
+            print_ast(((BinaryExpr*)expr->expr)->right, depth);
             break;
         case EXPR_TERNARY:
             print_ternary_expr(expr, depth++);
-            print_ast(((Ternary_expr*)expr->expr)->left, depth);
-            print_ast(((Ternary_expr*)expr->expr)->mid, depth);
-            print_ast(((Ternary_expr*)expr->expr)->right, depth);
+            print_ast(((TernaryExpr*)expr->expr)->left, depth);
+            print_ast(((TernaryExpr*)expr->expr)->mid, depth);
+            print_ast(((TernaryExpr*)expr->expr)->right, depth);
             break;
         case EXPR_OPERATOR:
             print_operator_expr(expr, depth++);
@@ -57,7 +57,7 @@ void print_ast(Expr * expr, size_t depth) {
 }
 
 void print_binary_expr(Expr * expr, size_t depth) {
-    Binary_expr * binary_expr = (Binary_expr*)expr->expr;
+    BinaryExpr * binary_expr = (BinaryExpr*)expr->expr;
 
     printf_with_indent(depth, "[Binary] ");
 
@@ -83,7 +83,7 @@ void print_binary_expr(Expr * expr, size_t depth) {
 }
 
 void print_ternary_expr(Expr * expr, size_t depth) {
-    Ternary_expr * ternary_expr = (Ternary_expr*)expr->expr;
+    TernaryExpr * ternary_expr = (TernaryExpr*)expr->expr;
 
     printf_with_indent(depth, "[Ternary] ");
 
@@ -100,7 +100,7 @@ void print_ternary_expr(Expr * expr, size_t depth) {
 }
 
 void print_unary_expr(Expr * expr, size_t depth) {
-    Unary_expr * unary_expr = (Unary_expr*)expr->expr;
+    UnaryExpr * unary_expr = (UnaryExpr*)expr->expr;
     TokenType type = unary_expr->token->type;
 
     printf_with_indent(depth, "[Unary] ");
@@ -116,8 +116,8 @@ void print_unary_expr(Expr * expr, size_t depth) {
 }
 
 void print_literal_expr(Expr * expr, size_t depth) {
-    Literal_expr * literal_expr = (Literal_expr*)expr->expr;
-    Literal_type type = literal_expr->literal_type;
+    LiteralExpr * literal_expr = (LiteralExpr*)expr->expr;
+    LiteralType type = literal_expr->literal_type;
 
     printf_with_indent(depth, "[Literal] ");
 
@@ -144,7 +144,7 @@ void print_literal_expr(Expr * expr, size_t depth) {
 }
 
 void print_grouping_expr(Expr * expr, size_t depth) {
-    Grouping_expr * grouping_expr = (Grouping_expr*)expr->expr;
+    GroupingExpr * grouping_expr = (GroupingExpr*)expr->expr;
     TokenType type = grouping_expr->type;
 
     printf_with_indent(depth, "[Grouping] ");

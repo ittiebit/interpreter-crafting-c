@@ -156,13 +156,13 @@ Stmt * statement(Parser * parser) {
 Stmt * print_stmt(Parser * parser) {
     Expr * value = expression(parser);
     p_consume(parser, SEMICOLON, "Expect ';' after value.");
-    return new_stmt(PRINT_STMT, value);
+    return new_print_stmt(value);
 }
 
 Stmt * expression_stmt(Parser * parser) {
     Expr * value = expression(parser);
     p_consume(parser, SEMICOLON, "Expect ';' after value.");
-    return new_stmt(EXPR_STMT, value);
+    return new_expr_stmt(value);
 }
 
 Expr * expression(Parser * parser) {
