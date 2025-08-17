@@ -1,15 +1,17 @@
 #include <math.h>
-#include <stdarg.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 
 #include "./types.h"
 #include "../clox/expr.h"
+#include "token.h"
 #include "./interpreter.h"
 
-void * evaluate(Interpreter * inter, Expr * expr);
-Value * accept(Interpreter * inter, Expr * expr);
+Value *  evaluate(Interpreter * inter, Expr * expr);
+void execute(Interpreter * inter, Stmt * stmt);
+Value * accept_expr(Interpreter * inter, Expr * expr);
+void accept_stmt(Interpreter * inter, Stmt * stmt);
 Value * create_value(const void * val, size_t val_size, Value_Type type);
 void free_value(Value * val);
 void * is_truthy(Interpreter * inter, Value * val);
@@ -25,6 +27,9 @@ Value * visit_literal_expr(Interpreter * inter, Expr * expr);
 Value * visit_grouping_expr(Interpreter * inter, Expr * expr);
 Value * visit_operator_expr(Interpreter * inter, Expr * expr);
 Value * visit_ternary_expr(Interpreter * inter, Expr * expr);
+
+void visit_expression_stmt(Interpreter * inter, Stmt * stmt);
+void visit_print_stmt(Interpreter * inter, Stmt * stmt);
 
 Interpreter * create_interpreter(char * p_runtime_errors) {
     Interpreter * interpreter;
@@ -50,11 +55,20 @@ void free_interpreter(Interpreter * inter) {
     inter = NULL;
 }
 
-void interpret(Interpreter * inter, Expr * expr) {
-    Value * val = evaluate(inter, expr);
-    char * stringified = stringify(val);
-    fprintf(stdout, "%s\n", stringified);
-    free(stringified);
+void interpret(Interpreter * inter, Stmt * head_stmt) {
+    if (inter == NULL || head_stmt == NULL) {
+        return;
+    }
+    Stmt * cur_stmt = head_stmt;
+    execute(inter, cur_stmt);
+    while (cur_stmt->next_stmt != NULL) {
+        cur_stmt = cur_stmt->next_stmt;
+        execute(inter, cur_stmt);
+    }
+    //Value * val = evaluate(inter, head_stmt);
+    //char * stringified = stringify(val);
+    //fprintf(stdout, "%s\n", stringified);
+    //free(stringified);
 
     if (inter->has_runtime_error) {
         // ???
@@ -136,8 +150,33 @@ void free_value(Value * val) {
     val = NULL;
 }
 
-void * evaluate(Interpreter * inter, Expr * expr) {
-    return accept(inter, expr);
+Value * evaluate(Interpreter * inter, Expr * expr) {
+    return accept_expr(inter, expr);
+}
+
+void execute(Interpreter * inter, Stmt * stmt) {
+    if (inter == NULL || stmt == NULL) {
+        return;
+    }
+    accept_stmt(inter, stmt);
+}
+
+void accept_stmt(Interpreter * inter, Stmt * stmt) {
+    if (inter == NULL || stmt == NULL) {
+        return;
+    }
+
+    switch (stmt->stmt_type) {
+        case PRINT_STMT:
+            visit_print_stmt(inter, stmt);
+            break;
+        case EXPR_STMT:
+        default:
+            visit_expression_stmt(inter, stmt);
+            return;
+    }
+
+    return;
 }
 
 void * is_truthy(Interpreter * inter, Value * val) {
@@ -199,7 +238,7 @@ void runtime_error(Interpreter * inter, Token * token, const char * message) {
 }
 
 
-Value * accept(Interpreter * inter, Expr * expr) {
+Value * accept_expr(Interpreter * inter, Expr * expr) {
     if (expr == NULL) {
         return NULL;
     }
@@ -415,5 +454,17 @@ Value * visit_grouping_expr(Interpreter * inter, Expr * expr) {
 
 Value * visit_operator_expr(Interpreter * inter, Expr * expr) {
     return NULL;
+}
+
+
+void visit_expression_stmt(Interpreter * inter, Stmt * stmt) {
+    evaluate(inter, stmt->expr);
+    return;
+}
+
+void visit_print_stmt(Interpreter * inter, Stmt * stmt) {
+    Value * val = evaluate(inter, stmt->expr);
+    fprintf(stdout, "%s\n", stringify(val));
+    return;
 }
 

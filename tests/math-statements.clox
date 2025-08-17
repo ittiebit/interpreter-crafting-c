@@ -1,0 +1,55 @@
+/* Simple binary math expressions */
+// Minus == 1
+print 2 - 1;
+print "Plus == 3";
+print 1 + 2;
+print "Multiply == 6";
+print 2 * 3;
+print "Divide == 2";
+print 4 / 2;
+print "Divide fractional == 2.5";
+print 5 / 2;
+print "Divide by fractional == 2.666667";
+print 4 / 1.5;
+print "Negative result == -1";
+print 1 - 2;
+print "Negative operand == 1";
+print -2 + 3;
+print "Division by negative == -2";
+print 4 / -2;
+print "Negative divided by positive == -2";
+print -4 / 2;
+
+/* Precedence & perentheses */
+print "Multiplication before addition == 5";
+print 2 + 3 * 1;
+print "Parentheses change precedence == 5";
+print (2 + 3) * 1;
+print "Nested parentheses == 14";
+print (2 + (3 * 4));
+
+/* Binary comparison expressions */
+print "Equal true";
+print 3 == 3;
+print "Equal false";
+print 3 == 4;
+print "Not equal true";
+print 3 != 4;
+print "Greater true";
+print 4 > 3;
+print "Greater false";
+print 3 > 4;
+print "Less true";
+print 3 < 4;
+print "Less false";
+print 4 < 3;
+print "Greater or equal true";
+print 4 >= 4;
+print "Less or equal true";
+print 3 <= 3;
+
+/* Mixed */
+print "7 == 7 (true)";
+print 3 + 4 == 2 * 3 + 1;
+print "10 == 12 (false)";
+print (2 + 3) * 2 == 12;
