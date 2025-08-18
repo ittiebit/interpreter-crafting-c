@@ -318,6 +318,34 @@ int hashmap_get(map_t in, char* key, any_t *arg){
 }
 
 /*
+ * Get a random element from the hashmap
+ */
+int hashmap_get_one(map_t in, any_t *arg, int remove) {
+    int i;
+    hashmap_map* m;
+
+    /* Cast the hashmap */
+    m = (hashmap_map *) in;
+
+    /* On empty hashmap return immediately */
+    if (hashmap_length(m) <= 0)
+        return MAP_MISSING;
+
+    /* Linear probing */
+    for(i = 0; i< m->table_size; i++)
+        if(m->data[i].in_use != 0){
+            *arg = (any_t) (m->data[i].data);
+            if (remove) {
+                m->data[i].in_use = 0;
+                m->size--;
+            }
+            return MAP_OK;
+        }
+
+    return MAP_OK;
+}
+
+/*
  * Iterate the function parameter over each element in the hashmap.  The
  * additional any_t argument is passed to the function as its first
  * argument and the hashmap element is the second.

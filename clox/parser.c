@@ -3,6 +3,7 @@
 #include "./clox.h"
 #include "./expr.h"
 #include "./token.h"
+#include "./types.h"
 #include "./parser.h"
 
 char p_match(Parser * parser, TokenType token_type);
@@ -14,6 +15,9 @@ Token * p_previous(Parser * parser);
 
 Token * p_consume(Parser * parser, TokenType type, char * message);
 void * p_error(Token * token, char * message, char * p_errors);
+
+Stmt * declaration(Parser * parser);
+Stmt * var_declaration(Parser * parser);
 
 Stmt * statement(Parser * parser);
 Stmt * print_stmt(Parser * parser);
@@ -69,9 +73,9 @@ Stmt * parse(Parser * parser) {
     Stmt * head_stmt = NULL;
     while (!p_isAtEnd(parser)) {
         if (head_stmt == NULL) {
-            head_stmt = statement(parser);
+            head_stmt = declaration(parser);
         } else {
-            add_stmt(head_stmt, statement(parser));
+            add_stmt(head_stmt, declaration(parser));
         }
     }
     return head_stmt;
@@ -151,6 +155,30 @@ Stmt * statement(Parser * parser) {
         return print_stmt(parser);
     }
     return expression_stmt(parser);
+}
+
+Stmt * declaration(Parser * parser) {
+    if (p_match(parser, VAR)) {
+        return var_declaration(parser);
+    }
+
+    return statement(parser);
+
+    if (parser->p_errors != VALUE_FALSE) {
+        synchronize(parser);
+    }
+}
+
+Stmt * var_declaration(Parser * parser) {
+    Token * name = p_consume(parser, IDENTIFIER, "Expect variable name.");
+
+    Expr * initializer = NULL;
+    if(p_match(parser, EQUAL)) {
+        initializer = expression(parser);
+    }
+
+    p_consume(parser, SEMICOLON, "Expect ';' after variable declaration.");
+    return new_var_stmt(name, initializer);
 }
 
 Stmt * print_stmt(Parser * parser) {
@@ -297,8 +325,13 @@ Expr * primary(Parser * parser) {
     }
 
     if (p_match(parser, NUMBER) || p_match(parser, STRING)) {
-        Token * token = p_previous(parser);
-        return new_literal_expr(token->type, token->literal);
+        Token * prev_token = p_previous(parser);
+        return new_literal_expr(prev_token->type, prev_token->literal);
+    }
+
+    if (p_match(parser, IDENTIFIER)) {
+        Token * prev_token = p_previous(parser);
+        return new_variable_expr(prev_token);
     }
 
     if (p_match(parser, LEFT_PAREN)) {

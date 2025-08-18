@@ -5,8 +5,9 @@
 
 #include "./types.h"
 #include "../clox/expr.h"
-#include "token.h"
+#include "./token.h"
 #include "./interpreter.h"
+#include "./environment.h"
 
 Value *  evaluate(Interpreter * inter, Expr * expr);
 void execute(Interpreter * inter, Stmt * stmt);
@@ -18,7 +19,6 @@ void * is_truthy(Interpreter * inter, Value * val);
 boolean is_equal(Value * a, Value * b);
 boolean equals(Value * a, Value * b); // compare object values
 void check_number_operand(Interpreter * inter, Token * operator, Value * operand);
-void runtime_error(Interpreter * inter, Token * token, const char * message);
 char * stringify(Value * val);
 
 Value * visit_binary_expr(Interpreter * inter, Expr * expr);
@@ -27,29 +27,31 @@ Value * visit_literal_expr(Interpreter * inter, Expr * expr);
 Value * visit_grouping_expr(Interpreter * inter, Expr * expr);
 Value * visit_operator_expr(Interpreter * inter, Expr * expr);
 Value * visit_ternary_expr(Interpreter * inter, Expr * expr);
+Value * visit_variable_expr(Interpreter * inter, Expr * expr);
 
 void visit_expression_stmt(Interpreter * inter, Stmt * stmt);
 void visit_print_stmt(Interpreter * inter, Stmt * stmt);
+void visit_var_stmt(Interpreter * inter, Stmt * stmt);
 
-Interpreter * create_interpreter(char * p_runtime_errors) {
-    Interpreter * interpreter;
-    if ((interpreter= malloc(sizeof(Interpreter))) == NULL) {
+Interpreter * create_interpreter(char * p_has_runtime_error) {
+    Interpreter * inter;
+    if ((inter= malloc(sizeof(Interpreter))) == NULL) {
         exit(1);
     }
-    if ((interpreter->has_runtime_error = malloc(sizeof(char))) == NULL) {
+    if (p_has_runtime_error != NULL) {
+        inter->has_runtime_error = p_has_runtime_error;
+    }
+    inter->env = new_environment();
+    if (inter->env == NULL) {
+        free_interpreter(inter);
         exit(1);
     }
-    memset(interpreter->has_runtime_error, 0, sizeof(*interpreter->has_runtime_error));
-    return interpreter;
+    return inter;
 }
 
 void free_interpreter(Interpreter * inter) {
     if (inter == NULL) {
         return;
-    }
-    if (inter->has_runtime_error != NULL) {
-        free(inter->has_runtime_error);
-        inter->has_runtime_error = NULL;
     }
     free(inter);
     inter = NULL;
@@ -170,6 +172,9 @@ void accept_stmt(Interpreter * inter, Stmt * stmt) {
         case PRINT_STMT:
             visit_print_stmt(inter, stmt);
             break;
+        case VAR_STMT:
+            visit_var_stmt(inter, stmt);
+            break;
         case EXPR_STMT:
         default:
             visit_expression_stmt(inter, stmt);
@@ -225,15 +230,15 @@ boolean equals(Value * a, Value * b) {
 
 void check_number_operand(Interpreter * inter, Token * operator, Value * operand) {
     if (operand->type == VAL_DOUBLE) return;
-    runtime_error(inter, operator, "Operand must be a number.");
+    runtime_error(inter->has_runtime_error, operator, "Operand must be a number.");
 }
 
 void check_number_operands(Interpreter * inter, Token * operator, Value * left, Value * right) {
     if (left->type == VAL_DOUBLE && right->type == VAL_DOUBLE) return;
-    runtime_error(inter, operator, "Operand must be a numbers.");
+    runtime_error(inter->has_runtime_error, operator, "Operand must be a numbers.");
 }
 
-void runtime_error(Interpreter * inter, Token * token, const char * message) {
+void runtime_error(char * p_has_runtime_error, Token * token, const char * message) {
     fprintf(stderr, "%s\n", message);
 }
 
@@ -261,6 +266,9 @@ Value * accept_expr(Interpreter * inter, Expr * expr) {
             break;
         case EXPR_OPERATOR:
             return visit_operator_expr(inter, expr);
+            break;
+        case EXPR_VARIABLE:
+            return visit_variable_expr(inter, expr);
             break;
         default:
             return NULL;
@@ -303,7 +311,7 @@ Value * visit_binary_expr(Interpreter * inter, Expr * expr) {
                 num_result = left_num + right_num;
                 return create_value(&num_result, sizeof(double), VAL_DOUBLE);
             }
-            runtime_error(inter, binary_expr->token, "Operands must be two numbers or two strings.");
+            runtime_error(inter->has_runtime_error, binary_expr->token, "Operands must be two numbers or two strings.");
             break;
         case SLASH:
             check_number_operands(inter, binary_expr->token, left_val, right_val);
@@ -456,6 +464,10 @@ Value * visit_operator_expr(Interpreter * inter, Expr * expr) {
     return NULL;
 }
 
+Value * visit_variable_expr(Interpreter * inter, Expr * expr) {
+    VariableExpr * var_expr = (VariableExpr*)expr->expr;
+    return get(inter->has_runtime_error, inter->env, var_expr->name);
+}
 
 void visit_expression_stmt(Interpreter * inter, Stmt * stmt) {
     evaluate(inter, ((ExprStmt*)stmt->stmt)->expr);
@@ -468,3 +480,12 @@ void visit_print_stmt(Interpreter * inter, Stmt * stmt) {
     return;
 }
 
+void visit_var_stmt(Interpreter * inter, Stmt * stmt) {
+    VarStmt * var_stmt = (VarStmt*)stmt->stmt;
+    Value * val = NULL;
+    if (var_stmt->initializer != NULL) {
+        val = evaluate(inter, var_stmt->initializer);
+    }
+    define(inter->env, var_stmt->name->lexeme, val);
+    return;
+}

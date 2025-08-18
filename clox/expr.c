@@ -201,6 +201,36 @@ void free_grouping_expr(Expr * expr) {
     free(expr);
 }
 
+Expr * new_variable_expr(Token * token) {
+    if (token == NULL) {
+        exit(1);
+    }
+
+    Expr * expr = malloc(sizeof(Expr));
+    if (expr == NULL) {
+        exit(1);
+    }
+
+    VariableExpr * variable_expr = malloc(sizeof(VariableExpr));
+    if (variable_expr == NULL) {
+        exit(1);
+    }
+    variable_expr->name = token;
+    expr->expr = variable_expr;
+    expr->expr_type = EXPR_VARIABLE;
+
+    return expr;
+}
+
+void free_variable_expr(Expr * expr) {
+    VariableExpr * variable_expr = expr->expr;
+    variable_expr->name = NULL;
+    free(variable_expr);
+    expr->expr = NULL;
+    expr->expr_type = 0;
+    free(expr);
+}
+
 void free_ast(Expr * expr) {
     // Print the syntax tree recursively DFS
 
@@ -224,6 +254,9 @@ void free_ast(Expr * expr) {
     case EXPR_OPERATOR:
         //free_operator_expr(expr);
         // TODO later
+        break;
+    case EXPR_VARIABLE:
+        free_variable_expr(expr);
         break;
     default:
         return;

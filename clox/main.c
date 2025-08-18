@@ -14,9 +14,21 @@
 #include "../utils/ast-printer.h"
 #endif
 
+typedef struct CloxCtx_t {
+    Interpreter * inter;
+    Parser * parser;
+    Scanner * scanner;
+    Token ** tokens;
+    CloxErrors errors;
+} CloxCtx;
+
 void run_prompt();
 void run_file(char * path);
-Clox_errors run(char * source);
+void run(char * source, CloxCtx * ctx);
+
+CloxCtx * create_ctx(char * source);
+void free_ctx(CloxCtx * ctx);
+void free_token_list(Token ** tokens);
 
 int main(int argc, char ** argv) {
     if (argc > 2) {
@@ -35,11 +47,14 @@ int main(int argc, char ** argv) {
 void run_prompt() {
     char line[SOURCE_BUF_SIZE];
 
+    CloxCtx * ctx = create_ctx(NULL);
+
     int interactive = isatty(fileno(stdin));
 
     if (!interactive) {
         fgets(line, sizeof(line), stdin);
-        run(line);
+        run(line, ctx);
+        free_ctx(ctx);
         return;
     }
 
@@ -47,36 +62,41 @@ void run_prompt() {
         printf("> ");
         fgets(line, sizeof(line), stdin);
         if (line[0] == '\n') continue;
-        run(line);
+        run(line, ctx);
     }
+    free_ctx(ctx);
     return;
 }
 
-Clox_errors run(char * source) {
-    boolean had_scan_error = VALUE_FALSE;
-    boolean had_parse_error = VALUE_FALSE;
-    boolean had_runtime_error = VALUE_FALSE;
+void run(char * source, CloxCtx * ctx) {
+    if (ctx == NULL) {
+        return;
+    }
+    ctx->errors.scan_errors = VALUE_FALSE;
+    ctx->errors.parse_errors = VALUE_FALSE;
+    ctx->errors.runtime_errors = VALUE_FALSE;
 
-    Clox_errors errors = {
-        .scan_errors = &had_scan_error,
-        .parse_errors = &had_parse_error,
-        .runtime_errors = &had_runtime_error,
-    };
+    if (ctx->scanner == NULL) {
+        ctx->scanner = create_scanner(source, &ctx->errors.scan_errors);
+    } else {
+        ctx->scanner->source = source;
+    }
+    ctx->scanner->tokens = scan_tokens(ctx->scanner);
+    ctx->tokens = ctx->scanner->tokens;
 
-    Scanner * scanner = create_scanner(source, errors.scan_errors);
-    Token ** tokens = scan_tokens(scanner);
-    free_scanner(scanner);
-
-    if (tokens[0] == NULL || tokens[0]->type == EOFF) {
-        return errors;
+    if (ctx->tokens[0] == NULL || ctx->tokens[0]->type == EOFF) {
+        return;
     }
 
-    Parser * parser = create_parser(tokens, errors.parse_errors);
-    Stmt * stmt = parse(parser);
-    free_parser(parser);
+    if (ctx->parser == NULL) {
+        ctx->parser = create_parser(ctx->tokens, &ctx->errors.parse_errors);
+    } else {
+        ctx->parser->tokens = ctx->tokens;
+    }
+    Stmt * stmt = parse(ctx->parser);
 
-    if (*errors.parse_errors != VALUE_FALSE || *errors.scan_errors != VALUE_FALSE) {
-        return errors;
+    if (ctx->errors.parse_errors != VALUE_FALSE || ctx->errors.scan_errors != VALUE_FALSE) {
+        return;
     }
 
     /* DEBUGGING */
@@ -92,9 +112,7 @@ Clox_errors run(char * source) {
     #endif
     /*************/
 
-
-    Interpreter * inter = create_interpreter(errors.runtime_errors);
-    interpret(inter, stmt);
+    interpret(ctx->inter, stmt);
 
     #ifdef DEBUG
     if (*errors.runtime_errors != VALUE_FALSE) {
@@ -102,17 +120,13 @@ Clox_errors run(char * source) {
     }
     #endif
 
-    for (int i = 0; i < SOURCE_BUF_SIZE; i++) {
-        if (tokens[i] == NULL) {
-            return errors;
-        }
-        free_token(tokens[i]);
-        tokens[i] = NULL;
-    }
-    free_stmt_list(stmt);
-    free_interpreter(inter);
+    free_token_list(ctx->tokens);
+    free_scanner(ctx->scanner);
+    ctx->scanner = NULL;
+    free_parser(ctx->parser);
+    ctx->parser = NULL;
 
-    return errors;
+    return;
 }
 
 void run_file(char * path) {
@@ -126,11 +140,90 @@ void run_file(char * path) {
 
     fread(bytes, size, sizeof(char), fptr);
 
-    Clox_errors errors = run(bytes);
-    if (*errors.scan_errors || *errors.parse_errors) {
+    CloxCtx * ctx = create_ctx(bytes);
+    run(bytes, ctx);
+
+    free_ctx(ctx);
+    if (ctx->errors.scan_errors || ctx->errors.parse_errors) {
         exit(65);
     }
-    if (*errors.runtime_errors) {
+    if (ctx->errors.runtime_errors) {
         exit(70);
+    }
+}
+
+CloxCtx * create_ctx(char * source) {
+    CloxCtx * ctx = malloc(sizeof(CloxCtx));
+    if (ctx == NULL) {
+        exit(1);
+    }
+
+    CloxErrors errors = {
+        .scan_errors = VALUE_FALSE,
+        .parse_errors = VALUE_FALSE,
+        .runtime_errors = VALUE_FALSE,
+    };
+    ctx->errors = errors;
+
+    ctx->scanner = create_scanner(source, &ctx->errors.scan_errors);
+    if (ctx->scanner == NULL) {
+        exit(1);
+    }
+
+    ctx->tokens = ctx->scanner->tokens;
+    if (ctx->tokens == NULL) {
+        exit(1);
+    }
+
+    ctx->inter = create_interpreter(&ctx->errors.runtime_errors);
+    if (ctx->inter == NULL) {
+        exit(1);
+    }
+
+    ctx->parser = create_parser(ctx->tokens, &ctx->errors.parse_errors);
+    if (ctx->parser == NULL) {
+        exit(1);
+    }
+
+    return ctx;
+}
+
+void free_ctx(CloxCtx * ctx) {
+    if (ctx == NULL) {
+        return;
+    }
+
+    ctx->errors.parse_errors = 0;
+    ctx->errors.scan_errors = 0;
+    ctx->errors.runtime_errors = 0;
+
+    if (ctx->scanner != NULL) {
+        free_scanner(ctx->scanner);
+        ctx->scanner = NULL;
+    }
+
+    free_token_list(ctx->tokens);
+    ctx->tokens = NULL;
+
+    if (ctx->inter == NULL) {
+        free_interpreter(ctx->inter);
+        ctx->inter = NULL;
+    }
+
+    if (ctx->parser == NULL) {
+        free_parser(ctx->parser);
+        ctx->parser = NULL;
+    }
+}
+
+void free_token_list(Token ** tokens) {
+    if (tokens != NULL) {
+        for (int i = 0; i < SOURCE_BUF_SIZE; i++) {
+            if (tokens[i] == NULL) {
+                return;
+            }
+            //free_token(tokens[i]);
+            tokens[i] = NULL;
+        }
     }
 }

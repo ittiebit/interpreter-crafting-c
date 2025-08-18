@@ -10,6 +10,7 @@ typedef enum ExprType_t {
     EXPR_BINARY,
     EXPR_TERNARY,
     EXPR_OPERATOR,
+    EXPR_VARIABLE,
 } ExprType;
 
 typedef struct Expr_t {
@@ -82,11 +83,13 @@ Expr * new_unary_expr(Token * op, Expr * right);
 Expr * new_ternary_expr(Expr * left, Token * op_left, Expr * mid, Token * op_right, Expr * right);
 Expr * new_literal_expr(TokenType type, void * literal);
 Expr * new_grouping_expr(TokenType type, Expr * expr);
+Expr * new_variable_expr(Token * token);
 void free_binary_expr(Expr * expr);
 void free_unary_expr(Expr * expr);
 void free_ternary_expr(Expr * expr);
 void free_literal_expr(Expr * expr);
 void free_grouping_expr(Expr * expr);
+void free_variable_expr(Expr * expr);
 void free_ast(Expr * expr);
 
 

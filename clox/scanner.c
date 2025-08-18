@@ -7,6 +7,7 @@
 #include "../utils/hashmap.h"
 #include "definitions.h"
 #include "token.h"
+#include "types.h"
 
 void scan_token(Scanner * scanner);
 int is_at_end(Scanner * scanner);
@@ -19,9 +20,9 @@ void comment(Scanner * scanner);
 char peek_next(Scanner * scanner);
 void number(Scanner * scanner);
 void identifier(Scanner * scanner);
-int is_digit(char c);
-int is_alpha(char c);
-int is_alpha_numeric(char c);
+boolean is_digit(char c);
+boolean is_alpha(char c);
+boolean is_alpha_numeric(char c);
 
 map_t create_keywords_hashmap();
 
@@ -39,60 +40,48 @@ char * keys_str[HASHMAP_SIZE] = {
         "while"
     };
 
-Scanner * alloc_null_scanner() {
-    Scanner * pscan = malloc(sizeof(Scanner));
-    if (pscan == NULL) {
-        fprintf(stderr, "ERROR in scanner.c - alloc_null_scanner(): malloc() failure\nexiting...\n");
-        exit(1);
-    }
-
-    pscan->source = NULL;
-    pscan->tokens = NULL;
-
-    return pscan;
-}
-
 Scanner * create_scanner(char * source, char * p_errors) {
-    Scanner * pscan = alloc_null_scanner();
-
-    if (pscan == NULL) {
+    Scanner * scanner = malloc(sizeof(Scanner));
+    if (scanner == NULL) {
+        fprintf(stderr, "[INTERNAL ERROR] scanner.c - alloc_null_scanner(): Failed to allocate Scanner\n");
         exit(1);
     }
 
-    //pscan->source = malloc(SOURCE_BUF_SIZE * sizeof(char));
-    //memcpy(pscan->source, source, SOURCE_BUF_SIZE * sizeof(char));
+    scanner->source = NULL;
+    scanner->tokens = NULL;
+    scanner->source = source;
 
-    pscan->source = source;
-
-    pscan->tokens = malloc(sizeof(Token) * SOURCE_BUF_SIZE);
-    if (pscan->tokens == NULL) {
-        fprintf(stderr, "ERROR in scanner.c - create_scanner(): pscan->tokens = malloc() failure\nexiting...\n");
+    scanner->tokens = malloc(sizeof(Token) * SOURCE_BUF_SIZE);
+    if (scanner->tokens == NULL) {
+        fprintf(stderr, "[INTERNAL ERROR] scanner.c - create_scanner(): Failed to allocate pscan->tokens\n");
         exit(1);
     }
     for (size_t i = 0; i < SOURCE_BUF_SIZE; i++) {
-        pscan->tokens[i] = NULL;
+        scanner->tokens[i] = NULL;
     }
 
-    pscan->token_list_size = 0;
-    pscan->start = 0;
-    pscan->current = 0;
-    pscan->line = 0;
+    scanner->token_list_size = 0;
+    scanner->start = 0;
+    scanner->current = 0;
+    scanner->line = 0;
 
-    pscan->keyword_map = NULL;
-    pscan->keyword_map = create_keywords_hashmap();
+    scanner->keyword_map = NULL;
+    scanner->keyword_map = create_keywords_hashmap();
 
-    if (pscan->keyword_map == NULL) {
+    if (scanner->keyword_map == NULL) {
+        free_scanner(scanner);
         fprintf(stderr, "ERROR in scanner.c - create_scanner(): pscan->keyword_map = create_keywords_hashmap() failure\nexiting...\n");
         exit(1);
     }
 
     if (p_errors == NULL) {
+        free_scanner(scanner);
         fprintf(stderr, "ERROR in scanner.c - create_scanner(): char * p_errors argument is NULL\n");
         exit(1);
     }
-    pscan->scan_errors = p_errors;
+    scanner->scan_errors = p_errors;
 
-    return pscan;
+    return scanner;
 }
 
 /*
@@ -103,9 +92,6 @@ void free_scanner(Scanner * scanner) {
         return;
     }
 
-    for (size_t i = 0; i < SOURCE_BUF_SIZE; i++) {
-        scanner->tokens = NULL;
-    }
     scanner->token_list_size = 0;
     scanner->start = 0;
     scanner->current = 0;
@@ -122,15 +108,13 @@ void free_scanner(Scanner * scanner) {
 }
 
 Token ** scan_tokens(Scanner * scanner) {
-    map_t keyword_map = create_keywords_hashmap();
-
     while (!is_at_end(scanner)) {
         scanner->start = scanner->current;
         scan_token(scanner);
     }
 
     ++scanner->token_list_size;
-    *(scanner->tokens+scanner->token_list_size-1) = create_token(EOFF, "", NULL, scanner->line);
+    *(scanner->tokens+scanner->token_list_size-1) = create_token(EOFF, strdup(""), NULL, scanner->line);
 
     return scanner->tokens;
 }
@@ -220,11 +204,13 @@ char advance(Scanner * scanner) {
 }
 
 void add_token(Scanner * scanner, TokenType type, void * literal) {
-    char * text = malloc((scanner->current - scanner->start) * sizeof(char));
+    size_t text_size = scanner->current - scanner->start;
+    char * text = malloc((text_size+1) * sizeof(char));
     if (text == NULL) {
         exit(1);
     }
-    memcpy(text, scanner->source+scanner->start, scanner->current-scanner->start);
+    memcpy(text, scanner->source+scanner->start, text_size);
+    text[text_size] = '\0';
 
     ++scanner->token_list_size;
     *(scanner->tokens+scanner->token_list_size-1) = create_token(type, text, literal, scanner->line);
@@ -356,7 +342,7 @@ void identifier(Scanner * scanner) {
     }
 
     size_t text_size = scanner->current - scanner->start;
-    char * text = malloc(text_size * sizeof(char));
+    char * text = malloc((text_size+1) * sizeof(char));
     memcpy(text, scanner->source+scanner->start, scanner->current-scanner->start);
     text[text_size] = '\0';
 
@@ -373,7 +359,6 @@ void identifier(Scanner * scanner) {
     }
 
     TokenType type;
-
     if (any_type == NULL || code == MAP_MISSING) {
         type = IDENTIFIER;
     } else {
@@ -382,6 +367,7 @@ void identifier(Scanner * scanner) {
 
     //printf("Identifier '%s' has type %i\n", text, type);
 
+    //free(text);
     add_token(scanner, type, NULL);
 }
 
@@ -390,17 +376,17 @@ char peek_next(Scanner * scanner) {
     return scanner->source[scanner->current + 1];
 }
 
-int is_digit(char c) {
+boolean is_digit(char c) {
     return c >= '0' && c <= '9';
 }
 
-int is_alpha(char c) {
+boolean is_alpha(char c) {
     return (c >= 'a' && c <= 'z') ||
     (c >= 'A' && c <= 'Z') ||
     c == '_';
 }
 
-int is_alpha_numeric(char c) {
+boolean is_alpha_numeric(char c) {
     return is_alpha(c) || is_digit(c);
 }
 
@@ -458,8 +444,8 @@ char * to_string(Token * token) {
 Token * create_token(TokenType type, char * lexeme, void * literal, size_t line) {
     Token * ptoken = malloc(sizeof(Token));
     if (ptoken == NULL) {
-        printf("Error: Failed to allocate token!\n");
-        exit(3);
+        fprintf(stderr, "[INTERNAL ERROR]: Failed to allocate token!\n");
+        exit(1);
     }
     ptoken->lexeme = NULL;
     ptoken->literal = NULL;
@@ -467,15 +453,9 @@ Token * create_token(TokenType type, char * lexeme, void * literal, size_t line)
     ptoken->type = type;
 
     if (lexeme != NULL) {
-        ptoken->lexeme = strdup(lexeme);
-        if (ptoken->lexeme == NULL) {
-            fprintf(stderr, "ERROR: Failed to allocate token->lexeme!\n");
-            exit(3);
-        }
+        ptoken->lexeme = lexeme;
     }
-
     ptoken->literal = literal;
-
     ptoken->line = line;
 
     return ptoken;

@@ -8,8 +8,8 @@ int main(void) {
 
     for (int i = 0; i < HASHMAP_SIZE; i++) {
         any_t any_type = NULL;
-        any_t * pany_type = &any_type;
-        int code = hashmap_get(map, keys_str[i], pany_type);
+        any_t * p_any_type = &any_type;
+        int code = hashmap_get(map, keys_str[i], p_any_type);
         if (code == MAP_FULL) {
             fprintf(stderr, "ERROR in scanner.c - identifier(): hashmap_get returned code %i. Hashmap is full.\n", code);
             exit(1);

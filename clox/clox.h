@@ -1,7 +1,7 @@
 #ifndef CLOX_H
 #define CLOX_H
 
-#include "token.h"
+#include "./token.h"
 #include <stddef.h>
 
 void scan_error(size_t line, char * message, char * had_error);
