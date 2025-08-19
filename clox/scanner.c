@@ -114,7 +114,7 @@ Token ** scan_tokens(Scanner * scanner) {
     }
 
     ++scanner->token_list_size;
-    *(scanner->tokens+scanner->token_list_size-1) = create_token(EOFF, strdup(""), NULL, scanner->line);
+    *(scanner->tokens+scanner->token_list_size-1) = create_token(EOFF, strdup(""), NULL, scanner->line-1);
 
     return scanner->tokens;
 }
