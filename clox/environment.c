@@ -1,8 +1,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include "./environment.h"
-#include "./interpreter.h"
+#include "./interpreter.h" // <-- typedef struct Environment here
 #include "./token.h"
 #include "../utils/hashmap.h"
 
@@ -42,15 +41,15 @@ void define(Environment * env, char * name, Value * val) {
     }
 }
 
-Value * get(char * p_has_runtime_error, Environment * env, Token * name) {
+Value * get(Interpreter * inter, Token * name) {
     any_t val = NULL;
-    if (hashmap_get(env->env_map, name->lexeme, &val) == MAP_OK) {
+    if (hashmap_get(inter->env->env_map, name->lexeme, &val) == MAP_OK) {
         return (Value*)val;
     } else {
         char * message = strdup("Undefined variable '");
         strcat(message, name->lexeme);
         strcat(message, "'.");
-        runtime_error(p_has_runtime_error, name, message);
+        set_runtime_error(inter, name, message);
         return NULL;
     }
 }
