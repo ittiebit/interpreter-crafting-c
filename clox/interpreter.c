@@ -30,6 +30,7 @@ Value * visit_grouping_expr(Interpreter * inter, Expr * expr);
 Value * visit_operator_expr(Interpreter * inter, Expr * expr);
 Value * visit_ternary_expr(Interpreter * inter, Expr * expr);
 Value * visit_variable_expr(Interpreter * inter, Expr * expr);
+Value * visit_assign_expr(Interpreter * inter, Expr * expr);
 
 void visit_expression_stmt(Interpreter * inter, Stmt * stmt);
 void visit_print_stmt(Interpreter * inter, Stmt * stmt);
@@ -313,6 +314,9 @@ Value * accept_expr(Interpreter * inter, Expr * expr) {
         case EXPR_VARIABLE:
             return visit_variable_expr(inter, expr);
             break;
+        case EXPR_ASSIGN:
+            return visit_assign_expr(inter, expr);
+            break;
         default:
             return NULL;
             break;
@@ -511,6 +515,15 @@ Value * visit_variable_expr(Interpreter * inter, Expr * expr) {
     VariableExpr * var_expr = (VariableExpr*)expr->expr;
     return get(inter, var_expr->name);
 }
+
+Value * visit_assign_expr(Interpreter * inter, Expr * expr) {
+    AssignExpr * assign_expr = (AssignExpr*)expr->expr;
+    Value * val = evaluate(inter, assign_expr->value);
+    assign(inter, assign_expr->name, val);
+    return val;
+}
+
+
 
 void visit_expression_stmt(Interpreter * inter, Stmt * stmt) {
     evaluate(inter, ((ExprStmt*)stmt->stmt)->expr);

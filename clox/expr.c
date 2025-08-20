@@ -231,6 +231,40 @@ void free_variable_expr(Expr * expr) {
     free(expr);
 }
 
+Expr * new_assign_expr(Token * name, Expr * value) {
+    if (name == NULL || value == NULL) {
+        exit(1);
+    }
+
+    AssignExpr * assign_expr = malloc(sizeof(AssignExpr));
+    if (assign_expr == NULL) {
+        exit(1);
+    }
+    assign_expr->value = value;
+    assign_expr->name = name;
+
+    Expr * expr = malloc(sizeof(Expr));
+    if (assign_expr == NULL) {
+        exit(1);
+    }
+    expr->expr = assign_expr;
+    expr->expr_type = EXPR_ASSIGN;
+    return expr;
+}
+
+void free_assign_expr(Expr * expr) {
+    AssignExpr * assign_expr = expr->expr;
+    if (assign_expr->value != NULL) {
+        free(assign_expr->value);
+        assign_expr->value = NULL;
+    }
+    assign_expr->name = NULL;
+    free(assign_expr);
+    expr->expr = NULL;
+    expr->expr_type = 0;
+    free(expr);
+}
+
 void free_ast(Expr * expr) {
     // Print the syntax tree recursively DFS
 

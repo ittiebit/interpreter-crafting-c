@@ -11,6 +11,7 @@ typedef enum ExprType_t {
     EXPR_TERNARY,
     EXPR_OPERATOR,
     EXPR_VARIABLE,
+    EXPR_ASSIGN,
 } ExprType;
 
 typedef struct Expr_t {
@@ -77,6 +78,10 @@ typedef struct VariableExpr_t {
     Token * name;
 } VariableExpr;
 
+typedef struct AssignExpr_t {
+    Token * name;
+    Expr * value;
+} AssignExpr;
 
 Expr * new_binary_expr(Expr * left, Token * op, Expr * right);
 Expr * new_unary_expr(Token * op, Expr * right);
@@ -84,12 +89,14 @@ Expr * new_ternary_expr(Expr * left, Token * op_left, Expr * mid, Token * op_rig
 Expr * new_literal_expr(TokenType type, void * literal);
 Expr * new_grouping_expr(TokenType type, Expr * expr);
 Expr * new_variable_expr(Token * token);
+Expr * new_assign_expr(Token * name, Expr * value);
 void free_binary_expr(Expr * expr);
 void free_unary_expr(Expr * expr);
 void free_ternary_expr(Expr * expr);
 void free_literal_expr(Expr * expr);
 void free_grouping_expr(Expr * expr);
 void free_variable_expr(Expr * expr);
+void free_assign_expr(Expr * expr);
 void free_ast(Expr * expr);
 
 
@@ -101,6 +108,7 @@ typedef enum StmtType_t {
     EXPR_STMT,
     PRINT_STMT,
     VAR_STMT,
+    ASSIGN_STMT,
 } StmtType;
 
 typedef struct Stmt_t {

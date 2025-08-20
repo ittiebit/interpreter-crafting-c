@@ -24,6 +24,7 @@ Stmt * print_stmt(Parser * parser);
 Stmt * expression_stmt(Parser * parser);
 
 Expr * expression(Parser * parser);
+Expr * assignment(Parser * parser);
 Expr * comma(Parser * parser);
 Expr * ternary(Parser * parser);
 Expr * equality(Parser * parser);
@@ -194,8 +195,27 @@ Stmt * expression_stmt(Parser * parser) {
 }
 
 Expr * expression(Parser * parser) {
-    return comma(parser);
+    return assignment(parser);
 }
+
+Expr * assignment(Parser * parser) {
+    Expr * expr = comma(parser);
+
+    if (p_match(parser, EQUAL)) {
+        Token * equals = p_previous(parser);
+        Expr * value = assignment(parser);
+
+        if (expr->expr_type == EXPR_VARIABLE) {
+            Token * name = ((VariableExpr*)expr->expr)->name;
+            return new_assign_expr(name, value);
+        }
+
+        p_error(equals, "Invalid assignment target.", parser->p_errors);
+    }
+
+    return expr;
+}
+
 
 Expr * comma(Parser * parser) {
     Expr * expr = ternary(parser);

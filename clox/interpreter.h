@@ -30,5 +30,6 @@ Environment * new_environment();
 void free_environment(Environment * env);
 void define(Environment * env, char * name, Value * val);
 Value * get(Interpreter * inter, Token * name);
+void assign(Interpreter * inter, Token * name, Value * val);
 
 #endif //INTERPRETER_H

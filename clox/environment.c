@@ -53,3 +53,16 @@ Value * get(Interpreter * inter, Token * name) {
         return NULL;
     }
 }
+
+void assign(Interpreter * inter, Token * name, Value * val) {
+    any_t arg = NULL;
+    if (hashmap_get(inter->env->env_map, name->lexeme, &arg) == MAP_OK) {
+        hashmap_put(inter->env->env_map, name->lexeme, val);
+        return;
+    }
+
+    char * message = strdup("Undefined variable '");
+    strcat(message, name->lexeme);
+    strcat(message, "'.");
+    set_runtime_error(inter, name, message);
+}
