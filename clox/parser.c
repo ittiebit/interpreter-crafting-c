@@ -22,6 +22,7 @@ Stmt * var_declaration(Parser * parser);
 Stmt * statement(Parser * parser);
 Stmt * print_stmt(Parser * parser);
 Stmt * expression_stmt(Parser * parser);
+Stmt * block(Parser * parser);
 
 Expr * expression(Parser * parser);
 Expr * assignment(Parser * parser);
@@ -73,11 +74,7 @@ void free_parser(Parser * parser) {
 Stmt * parse(Parser * parser) {
     Stmt * head_stmt = NULL;
     while (!p_isAtEnd(parser)) {
-        if (head_stmt == NULL) {
-            head_stmt = declaration(parser);
-        } else {
-            add_stmt(head_stmt, declaration(parser));
-        }
+        add_stmt(&head_stmt, declaration(parser));
     }
     return head_stmt;
 }
@@ -155,6 +152,9 @@ Stmt * statement(Parser * parser) {
     if (p_match(parser, PRINT)) {
         return print_stmt(parser);
     }
+    if (p_match(parser, LEFT_BRACE)) {
+        return new_block_stmt(block(parser));
+    }
     return expression_stmt(parser);
 }
 
@@ -192,6 +192,18 @@ Stmt * expression_stmt(Parser * parser) {
     Expr * value = expression(parser);
     p_consume(parser, SEMICOLON, "Expect ';' after value.");
     return new_expr_stmt(value);
+}
+
+Stmt * block(Parser * parser) {
+    Stmt * head_stmt = NULL;
+
+    while (!p_check(parser, RIGHT_BRACE) && !p_isAtEnd(parser)) {
+        add_stmt(&head_stmt, declaration(parser));
+    }
+
+    p_consume(parser, RIGHT_BRACE, "Expect '}' after block.");
+
+    return head_stmt;
 }
 
 Expr * expression(Parser * parser) {

@@ -18,12 +18,29 @@ Environment * new_environment() {
         exit(1);
     }
 
+    env->enclosing = NULL;
+
     return env;
+}
+
+Environment * new_enclosing_environment(Environment * env) {
+    Environment * enclosing_env = new_environment();
+    if (enclosing_env == NULL) {
+        exit(1);
+    }
+
+    enclosing_env->enclosing = env;
+
+    return enclosing_env;
 }
 
 void free_environment(Environment * env) {
     if (env == NULL) {
         return;
+    }
+    if (env->enclosing != NULL) {
+        free_environment(env->enclosing); //for enclosed environments
+        env->enclosing = NULL;
     }
     if (env->env_map != NULL) {
         hashmap_free(env->env_map);
@@ -41,28 +58,56 @@ void define(Environment * env, char * name, Value * val) {
     }
 }
 
-Value * get(Interpreter * inter, Token * name) {
+Value * get(Interpreter * inter, Environment * env, Token * name) {
     any_t val = NULL;
-    if (hashmap_get(inter->env->env_map, name->lexeme, &val) == MAP_OK) {
+    if (hashmap_get(env->env_map, name->lexeme, &val) == MAP_OK) {
         return (Value*)val;
-    } else {
-        char * message = strdup("Undefined variable '");
-        strcat(message, name->lexeme);
-        strcat(message, "'.");
-        set_runtime_error(inter, name, message);
-        return NULL;
     }
+
+    if (env->enclosing != NULL) {
+        return get(inter, env->enclosing, name);
+    }
+
+    size_t size = strlen("Undefined variable '") + strlen(name->lexeme)
+        + strlen("'.") + 1;
+
+    char * message = malloc(size);
+    if (message == NULL) {
+        perror("malloc");
+        exit(1);
+    }
+
+    strcpy(message, "Undefined variable '");
+    strcat(message, name->lexeme);
+    strcat(message, "'.");
+
+    set_runtime_error(inter, name, message);
+    return NULL;
 }
 
-void assign(Interpreter * inter, Token * name, Value * val) {
+void assign(Interpreter * inter, Environment * env, Token * name, Value * val) {
     any_t arg = NULL;
-    if (hashmap_get(inter->env->env_map, name->lexeme, &arg) == MAP_OK) {
-        hashmap_put(inter->env->env_map, name->lexeme, val);
+    if (hashmap_get(env->env_map, name->lexeme, &arg) == MAP_OK) {
+        hashmap_put(env->env_map, name->lexeme, val);
         return;
     }
 
-    char * message = strdup("Undefined variable '");
+    if (env->enclosing != NULL) {
+        assign(inter, env->enclosing, name, val);
+    }
+
+    size_t size = strlen("Undefined variable '") + strlen(name->lexeme)
+        + strlen("'.") + 1;
+
+    char * message = malloc(size);
+    if (!message) {
+        perror("malloc");
+        exit(1);
+    }
+
+    strcpy(message, "Undefined variable '");
     strcat(message, name->lexeme);
     strcat(message, "'.");
+
     set_runtime_error(inter, name, message);
 }

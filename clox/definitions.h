@@ -1,6 +1,6 @@
 #ifndef DEFINITIONS_H
 #define DEFINITIONS_H
 
-#define SOURCE_BUF_SIZE 512
+#define SOURCE_BUF_SIZE 1024
 
 #endif //DEFINITIONS_H

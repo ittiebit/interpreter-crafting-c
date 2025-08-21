@@ -12,8 +12,6 @@ Value *  evaluate(Interpreter * inter, Expr * expr);
 void execute(Interpreter * inter, Stmt * stmt);
 Value * accept_expr(Interpreter * inter, Expr * expr);
 void accept_stmt(Interpreter * inter, Stmt * stmt);
-Value * create_value(const void * val, size_t val_size, Value_Type type);
-void free_value(Value * val);
 void * is_truthy(Interpreter * inter, Value * val);
 boolean is_equal(Value * a, Value * b);
 boolean equals(Value * a, Value * b); // compare object values
@@ -35,6 +33,9 @@ Value * visit_assign_expr(Interpreter * inter, Expr * expr);
 void visit_expression_stmt(Interpreter * inter, Stmt * stmt);
 void visit_print_stmt(Interpreter * inter, Stmt * stmt);
 void visit_var_stmt(Interpreter * inter, Stmt * stmt);
+void visit_block_stmt(Interpreter * inter, Stmt * stmt);
+
+void execute_block(Interpreter * inter, Stmt * head_stmt, Environment * env);
 
 Interpreter * create_interpreter(char * p_has_runtime_error) {
     Interpreter * inter;
@@ -60,6 +61,10 @@ void free_interpreter(Interpreter * inter) {
         free_runtime_error_struct(inter->runtime_error);
         inter->runtime_error = NULL;
     }
+    if (inter->env != NULL) {
+        free_environment(inter->env);
+        inter->env = NULL;
+    }
     free(inter);
     inter = NULL;
 }
@@ -73,11 +78,13 @@ void interpret(Interpreter * inter, Stmt * head_stmt) {
 
     execute(inter, cur_stmt);
     try_throw_runtime_error(inter);
-
-    while (cur_stmt->next_stmt != NULL) {
+    if (cur_stmt->next_stmt != NULL) {
         cur_stmt = cur_stmt->next_stmt;
+    }
+    while (cur_stmt != head_stmt) {
         execute(inter, cur_stmt);
         try_throw_runtime_error(inter);
+        cur_stmt = cur_stmt->next_stmt;
     }
 }
 
@@ -148,10 +155,11 @@ void free_value(Value * val) {
     if (val == NULL) {
         return;
     }
-    if (val->value != NULL) {
+    if (val->value != NULL && val->type != VAL_NIL) {
         free(val->value);
-        val->value = NULL;
     }
+    val->value = NULL;
+    val->type = 0;
     free(val);
     val = NULL;
 }
@@ -178,6 +186,9 @@ void accept_stmt(Interpreter * inter, Stmt * stmt) {
             break;
         case VAR_STMT:
             visit_var_stmt(inter, stmt);
+            break;
+        case BLOCK_STMT:
+            visit_block_stmt(inter, stmt);
             break;
         case EXPR_STMT:
         default:
@@ -513,13 +524,13 @@ Value * visit_operator_expr(Interpreter * inter, Expr * expr) {
 
 Value * visit_variable_expr(Interpreter * inter, Expr * expr) {
     VariableExpr * var_expr = (VariableExpr*)expr->expr;
-    return get(inter, var_expr->name);
+    return get(inter, inter->env, var_expr->name);
 }
 
 Value * visit_assign_expr(Interpreter * inter, Expr * expr) {
     AssignExpr * assign_expr = (AssignExpr*)expr->expr;
     Value * val = evaluate(inter, assign_expr->value);
-    assign(inter, assign_expr->name, val);
+    assign(inter, inter->env, assign_expr->name, val);
     return val;
 }
 
@@ -535,6 +546,8 @@ void visit_print_stmt(Interpreter * inter, Stmt * stmt) {
     if (val != NULL) {
         fprintf(stdout, "%s\n", stringify(val));
     }
+    free_value(val);
+    val = NULL;
     return;
 }
 
@@ -546,4 +559,29 @@ void visit_var_stmt(Interpreter * inter, Stmt * stmt) {
     }
     define(inter->env, var_stmt->name->lexeme, val);
     return;
+}
+
+void visit_block_stmt(Interpreter * inter, Stmt * stmt) {
+    BlockStmt * block_stmt = (BlockStmt*)stmt->stmt;
+
+    execute_block(inter, block_stmt->head_stmt, new_environment());
+}
+
+void execute_block(Interpreter * inter, Stmt * head_stmt, Environment * env) {
+    Environment * prev_env = inter->env;
+
+    inter->env = env;
+
+    Stmt * cur_stmt = head_stmt;
+
+    execute(inter, cur_stmt);
+    try_throw_runtime_error(inter);
+    cur_stmt = cur_stmt->next_stmt;
+    while (cur_stmt != head_stmt) {
+        execute(inter, cur_stmt);
+        try_throw_runtime_error(inter);
+        cur_stmt = cur_stmt->next_stmt;
+    }
+
+    inter->env = prev_env;
 }

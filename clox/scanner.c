@@ -5,9 +5,9 @@
 #include "./scanner.h"
 #include "./clox.h"
 #include "../utils/hashmap.h"
-#include "definitions.h"
-#include "token.h"
-#include "types.h"
+#include "./definitions.h"
+#include "./token.h"
+#include "./types.h"
 
 void scan_token(Scanner * scanner);
 int is_at_end(Scanner * scanner);
@@ -100,10 +100,10 @@ void free_scanner(Scanner * scanner) {
     hashmap_free(scanner->keyword_map);
     scanner->keyword_map = NULL;
 
-    memset(scanner->scan_errors, 0x0, sizeof(char));
+    *scanner->scan_errors = VALUE_FALSE;
     scanner->scan_errors = NULL;
 
-    memset(scanner->source, 0x0, sizeof(char) * SOURCE_BUF_SIZE);
+    memset(scanner->source, 0x0, sizeof(char) * strlen(scanner->source));
     scanner->source = NULL; // source text buffer not allocated for now
 }
 
@@ -250,7 +250,7 @@ void string(Scanner * scanner) {
 
     size_t string_size = scanner->current-scanner->start-2;
     // Trim the surrounding quotes.
-    char * string_value = malloc(string_size * sizeof(char));
+    char * string_value = malloc((string_size + 1) * sizeof(char));
     memcpy(string_value, scanner->source+scanner->start+1, string_size);
     string_value[string_size] = '\0'; // get rid of garbage char
 

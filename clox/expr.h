@@ -109,6 +109,7 @@ typedef enum StmtType_t {
     PRINT_STMT,
     VAR_STMT,
     ASSIGN_STMT,
+    BLOCK_STMT,
 } StmtType;
 
 typedef struct Stmt_t {
@@ -131,16 +132,22 @@ typedef struct VarStmt_t {
     Expr * initializer;
 } VarStmt;
 
+typedef struct BlockStmt_t {
+    Stmt * head_stmt; //linked list of statements
+} BlockStmt;
+
 //Stmt * new_stmt(StmtType stmt_type, Expr * expr);
 void free_stmt(Stmt * stmt);
-void add_stmt(Stmt * head_stmt, Stmt * new_stmt);
+void add_stmt(Stmt ** pp_head_stmt, Stmt * new_stmt);
 void free_stmt_list(Stmt * stmt);
 
 Stmt * new_print_stmt(Expr * expr);
 Stmt * new_expr_stmt(Expr * expr);
 Stmt * new_var_stmt(Token * name, Expr * initializer);
+Stmt * new_block_stmt(Stmt * stmt);
 void free_print_stmt(PrintStmt * stmt);
 void free_expr_stmt(ExprStmt * stmt);
 void free_var_stmt(VarStmt * stmt);
+void free_block_stmt(BlockStmt * stmt);
 
 #endif //EXPR_H

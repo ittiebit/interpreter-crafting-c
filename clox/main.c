@@ -1,6 +1,7 @@
 #include <stddef.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 #include <unistd.h>
 #include "./scanner.h"
 #include "./definitions.h"
@@ -13,6 +14,7 @@
 #ifdef DEBUG
 #include "../utils/ast-printer.h"
 #endif
+#include "../utils/ast-printer.h"
 
 typedef struct CloxCtx_t {
     Interpreter * inter;
@@ -46,6 +48,7 @@ int main(int argc, char ** argv) {
 
 void run_prompt() {
     char line[SOURCE_BUF_SIZE];
+    memset(line, '\0', SOURCE_BUF_SIZE);
 
     CloxCtx * ctx = create_ctx(NULL);
 
@@ -101,14 +104,14 @@ void run(char * source, CloxCtx * ctx) {
 
     /* DEBUGGING */
     #ifdef DEBUG
-    print_ast(ast, 0);
+    print_ast(stmt, 0);
 
-    if (*errors.scan_errors != VALUE_FALSE) {
-        fprintf(stderr, "[DEBUG] had_scan_error flag set!\n");
-    }
-    if (*errors.parse_errors != VALUE_FALSE) {
-        fprintf(stderr, "[DEBUG] had_parse_error flag set!\n");
-    }
+    //if (*errors.scan_errors != VALUE_FALSE) {
+    //    fprintf(stderr, "[DEBUG] had_scan_error flag set!\n");
+    //}
+    //if (*errors.parse_errors != VALUE_FALSE) {
+    //    fprintf(stderr, "[DEBUG] had_parse_error flag set!\n");
+    //}
     #endif
     /*************/
 
@@ -119,6 +122,8 @@ void run(char * source, CloxCtx * ctx) {
         fprintf(stderr, "[DEBUG] had_scan_error flag set!\n");
     }
     #endif
+
+    free_stmt_list(stmt);
 
     free_token_list(ctx->tokens);
     free_scanner(ctx->scanner);
@@ -136,20 +141,29 @@ void run_file(char * path) {
     size_t size = ftell(fptr);
     rewind(fptr);
 
-    char * bytes = malloc(sizeof(char)*size);
+    char * bytes = malloc(sizeof(char)*size+1);
 
-    fread(bytes, size, sizeof(char), fptr);
+    size_t read_bytes_n = fread(bytes, 1, size, fptr);
+    bytes[read_bytes_n] = '\0';
 
     CloxCtx * ctx = create_ctx(bytes);
     run(bytes, ctx);
 
-    free_ctx(ctx);
     if (ctx->errors.scan_errors || ctx->errors.parse_errors) {
+        free_ctx(ctx);
+        free(bytes);
+        bytes = NULL;
         exit(65);
     }
     if (ctx->errors.runtime_errors) {
+        free_ctx(ctx);
+        free(bytes);
+        bytes = NULL;
         exit(70);
     }
+    free_ctx(ctx);
+    free(bytes);
+    bytes = NULL;
 }
 
 CloxCtx * create_ctx(char * source) {
@@ -205,12 +219,12 @@ void free_ctx(CloxCtx * ctx) {
     free_token_list(ctx->tokens);
     ctx->tokens = NULL;
 
-    if (ctx->inter == NULL) {
+    if (ctx->inter != NULL) {
         free_interpreter(ctx->inter);
         ctx->inter = NULL;
     }
 
-    if (ctx->parser == NULL) {
+    if (ctx->parser != NULL) {
         free_parser(ctx->parser);
         ctx->parser = NULL;
     }
@@ -220,9 +234,9 @@ void free_token_list(Token ** tokens) {
     if (tokens != NULL) {
         for (int i = 0; i < SOURCE_BUF_SIZE; i++) {
             if (tokens[i] == NULL) {
-                return;
+                continue; // in case there are some hiding beyond the end?
             }
-            //free_token(tokens[i]);
+            free_token(tokens[i]);
             tokens[i] = NULL;
         }
     }

@@ -137,10 +137,7 @@ Expr * new_literal_expr(TokenType type, void * literal) {
         literal_expr->value = NULL;
     } else if (type == STRING) {
         literal_expr->literal_type = LITERAL_STRING;
-        if ((literal_expr->value = malloc(sizeof(char) * strlen(literal))) == NULL) {
-            exit(1);
-        }
-        strcpy(literal_expr->value, literal);
+        literal_expr->value = strdup(literal);
     } else if (type == NUMBER) {
         literal_expr->literal_type = LITERAL_NUMBER;
         if ((literal_expr->value = malloc(sizeof(double))) == NULL) {
@@ -162,6 +159,7 @@ void free_literal_expr(Expr * expr) {
     LiteralExpr * literal_expr = expr->expr;
     if (literal_expr->value != NULL) {
         free(literal_expr->value);
+        literal_expr->value = NULL;
     }
     free(literal_expr);
     expr->expr = NULL;
@@ -267,6 +265,9 @@ void free_assign_expr(Expr * expr) {
 
 void free_ast(Expr * expr) {
     // Print the syntax tree recursively DFS
+    if (expr == NULL) {
+        return;
+    }
 
     switch (expr->expr_type) {
     case EXPR_LITERAL:
@@ -357,9 +358,8 @@ Stmt * new_print_stmt(Expr * expr) {
     return stmt;
 }
 
-
 void free_print_stmt(PrintStmt * stmt) {
-    if (stmt->expr == NULL) {
+    if (stmt == NULL) {
         return;
     }
     if (stmt->expr != NULL) {
@@ -410,7 +410,7 @@ Stmt * new_var_stmt(Token * name, Expr * initializer) {
     var_stmt->name = name;
 
     Stmt * stmt = malloc(sizeof(Stmt));
-    if (var_stmt == NULL) {
+    if (stmt == NULL) {
         fprintf(stderr, "[INTERNAL ERROR] expr.c - new_var_stmt(): Failed to allocate Stmt\n");
         return NULL;
     }
@@ -430,24 +430,68 @@ void free_var_stmt(VarStmt * stmt) {
     free(stmt);
 }
 
-void add_stmt(Stmt * head_stmt, Stmt * new_stmt) {
-    if (head_stmt == NULL || new_stmt == NULL) {
+Stmt * new_block_stmt(Stmt * head_stmt) {
+    if (head_stmt == NULL) {
+        fprintf(stderr, "[INTERNAL ERROR] expr.c - new_block_stmt(): head_stmt is NULL. Not good.\n");
+        return NULL;
+    }
+
+    BlockStmt * block_stmt = malloc(sizeof(BlockStmt));
+    if (block_stmt == NULL) {
+        fprintf(stderr, "[INTERNAL ERROR] expr.c - new_block_stmt(): Failed to allocate BlockStmt\n");
+        return NULL;
+    }
+
+    block_stmt->head_stmt = head_stmt;
+
+    Stmt * stmt = malloc(sizeof(Stmt));
+    if (stmt == NULL) {
+        fprintf(stderr, "[INTERNAL ERROR] expr.c - new_block_stmt(): Failed to allocate Stmt\n");
+        return NULL;
+    }
+    stmt->stmt = block_stmt;
+    stmt->stmt_type = BLOCK_STMT;
+    return stmt;
+}
+
+void free_block_stmt(BlockStmt * stmt) {
+    if (stmt == NULL) {
+        return;
+    }
+    if (stmt->head_stmt != NULL) {
+        free_stmt_list(stmt->head_stmt);
+        stmt->head_stmt = NULL;
+    }
+    free(stmt);
+}
+
+void add_stmt(Stmt ** pp_head_stmt, Stmt * new_stmt) {
+    if (new_stmt == NULL) {
         return;
     }
 
-    if (head_stmt->next_stmt == NULL) {
-        head_stmt->next_stmt = new_stmt;
-        head_stmt->prev_stmt = new_stmt;
-        new_stmt->next_stmt = head_stmt;
-        new_stmt->prev_stmt = head_stmt;
-    } else {
-        Stmt * tail = head_stmt->prev_stmt;
-        new_stmt->prev_stmt = tail;
-        new_stmt->next_stmt = head_stmt;
-        tail->next_stmt = new_stmt;
-        head_stmt->prev_stmt = new_stmt;
+    new_stmt->next_stmt = new_stmt->prev_stmt = NULL;
+
+    if (*pp_head_stmt == NULL) {
+        *pp_head_stmt = new_stmt;
+        return;
     }
-    new_stmt->next_stmt = NULL;
+
+    Stmt * head = *pp_head_stmt;
+    Stmt * tail = head->prev_stmt;
+
+    if (tail == NULL) {
+        head->next_stmt = new_stmt;
+        head->prev_stmt = new_stmt;
+        new_stmt->next_stmt = head;
+        new_stmt->prev_stmt = head;
+    } else {
+        tail->next_stmt = new_stmt;
+        new_stmt->prev_stmt = tail;
+        new_stmt->next_stmt = head;
+        head->prev_stmt = new_stmt;
+    }
+    //new_stmt->next_stmt = NULL;
 }
 
 void free_stmt(Stmt * stmt) {
@@ -456,46 +500,44 @@ void free_stmt(Stmt * stmt) {
     }
     switch (stmt->stmt_type) {
         case PRINT_STMT:
+            free_print_stmt(((PrintStmt*)stmt->stmt));
             break;
         case EXPR_STMT:
-            if (((ExprStmt*)stmt->stmt)->expr != NULL) {
-                free_ast(((ExprStmt*)stmt->stmt)->expr);
-                ((ExprStmt*)stmt->stmt)->expr = NULL;
-            }
+            free_expr_stmt(((ExprStmt*)stmt->stmt));
             break;
         case VAR_STMT:
-            if (((VarStmt*)stmt->stmt)->initializer != NULL) {
-                free_ast(((VarStmt*)stmt->stmt)->initializer);
-                ((VarStmt*)stmt->stmt)->initializer = NULL;
-                free(((VarStmt*)stmt->stmt)->name);
-                ((VarStmt*)stmt->stmt)->name = NULL;
-            }
+            free_var_stmt(((VarStmt*)stmt->stmt));
             break;
+        case BLOCK_STMT:
+            free_block_stmt(((BlockStmt*)stmt->stmt));
+            break;
+        default: return;
     }
-    if (stmt->stmt != NULL) {
-        free(stmt->stmt);
-        stmt->stmt = NULL;
-    }
+    //if (stmt->stmt != NULL) {
+    //    free(stmt->stmt);
+    //    stmt->stmt = NULL;
+    //}
     stmt->stmt_type = 0;
     free(stmt);
 }
 
-void free_stmt_list(Stmt * stmt) {
-    if (stmt == NULL) {
+void free_stmt_list(Stmt * head_stmt) {
+    if (head_stmt == NULL) {
         return;
     }
 
-    Stmt * cur_stmt = stmt;
+    Stmt * cur_stmt = head_stmt->next_stmt;
+    Stmt * prev_stmt = head_stmt;
 
-    if (cur_stmt->next_stmt == NULL) {
-        free_stmt(cur_stmt);
-        return;
-    }
-
-    while (cur_stmt->next_stmt != NULL) {
+    while (cur_stmt->next_stmt != head_stmt) {
+        free_stmt(prev_stmt);
+        prev_stmt = NULL;
+        prev_stmt = cur_stmt;
         cur_stmt = cur_stmt->next_stmt;
-        free_stmt(cur_stmt->prev_stmt);
-        cur_stmt->prev_stmt = NULL;
     }
-    free_stmt(cur_stmt);
+    if (cur_stmt != NULL) {
+        free_stmt(cur_stmt);
+        prev_stmt = cur_stmt = NULL;
+    }
+
 }
