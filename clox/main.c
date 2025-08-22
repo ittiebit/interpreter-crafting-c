@@ -14,7 +14,6 @@
 #ifdef DEBUG
 #include "../utils/ast-printer.h"
 #endif
-#include "../utils/ast-printer.h"
 
 typedef struct CloxCtx_t {
     Interpreter * inter;
@@ -104,24 +103,11 @@ void run(char * source, CloxCtx * ctx) {
 
     /* DEBUGGING */
     #ifdef DEBUG
-    print_ast(stmt, 0);
-
-    //if (*errors.scan_errors != VALUE_FALSE) {
-    //    fprintf(stderr, "[DEBUG] had_scan_error flag set!\n");
-    //}
-    //if (*errors.parse_errors != VALUE_FALSE) {
-    //    fprintf(stderr, "[DEBUG] had_parse_error flag set!\n");
-    //}
+    print_stmt_list(stmt, 0);
     #endif
     /*************/
 
     interpret(ctx->inter, stmt);
-
-    #ifdef DEBUG
-    if (*errors.runtime_errors != VALUE_FALSE) {
-        fprintf(stderr, "[DEBUG] had_scan_error flag set!\n");
-    }
-    #endif
 
     free_stmt_list(stmt);
 

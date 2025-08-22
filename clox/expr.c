@@ -3,6 +3,7 @@
 #include <string.h>
 #include "./expr.h"
 #include "./token.h"
+#include "./scanner.h"
 
 
 Expr * new_binary_expr(Expr * left, Token * operator, Expr * right) {
@@ -222,8 +223,10 @@ Expr * new_variable_expr(Token * token) {
 
 void free_variable_expr(Expr * expr) {
     VariableExpr * variable_expr = expr->expr;
-    variable_expr->name = NULL;
-    free(variable_expr);
+    if (variable_expr != NULL) {
+        variable_expr->name = NULL;
+        free(variable_expr);
+    }
     expr->expr = NULL;
     expr->expr_type = 0;
     free(expr);
@@ -513,12 +516,11 @@ void free_stmt(Stmt * stmt) {
             break;
         default: return;
     }
-    //if (stmt->stmt != NULL) {
-    //    free(stmt->stmt);
-    //    stmt->stmt = NULL;
-    //}
     stmt->stmt_type = 0;
-    free(stmt);
+    if (stmt != NULL) {
+        free(stmt);
+        stmt = NULL;
+    }
 }
 
 void free_stmt_list(Stmt * head_stmt) {
@@ -526,18 +528,16 @@ void free_stmt_list(Stmt * head_stmt) {
         return;
     }
 
-    Stmt * cur_stmt = head_stmt->next_stmt;
-    Stmt * prev_stmt = head_stmt;
+    Stmt * cur_stmt = head_stmt;
+    Stmt * next_stmt = cur_stmt->next_stmt;
 
-    while (cur_stmt->next_stmt != head_stmt) {
-        free_stmt(prev_stmt);
-        prev_stmt = NULL;
-        prev_stmt = cur_stmt;
-        cur_stmt = cur_stmt->next_stmt;
+    free_stmt(cur_stmt);
+    if (next_stmt != NULL && next_stmt != head_stmt) {
+        cur_stmt = next_stmt;
     }
-    if (cur_stmt != NULL) {
+    while (next_stmt != NULL && next_stmt != head_stmt) {
+        next_stmt = cur_stmt->next_stmt;
         free_stmt(cur_stmt);
-        prev_stmt = cur_stmt = NULL;
+        cur_stmt = next_stmt;
     }
-
 }

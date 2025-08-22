@@ -51,6 +51,12 @@ void print_ast(Expr * expr, size_t depth) {
             print_operator_expr(expr, depth++);
             // TODO later
             break;
+        case EXPR_ASSIGN:
+            print_assign_expr(expr, depth++);
+            break;
+        case EXPR_VARIABLE:
+            print_variable_expr(expr, depth++);
+            break;
         default:
             return;
     }
@@ -132,7 +138,7 @@ void print_literal_expr(Expr * expr, size_t depth) {
             printf("NIL\n");
             break;
         case LITERAL_STRING:
-            printf("%s\n", (char*)literal_expr->value);
+            printf("'%s'\n", (char*)literal_expr->value);
             break;
         case LITERAL_NUMBER:
             printf("%f\n", *(double*)literal_expr->value);
@@ -166,5 +172,105 @@ void print_grouping_expr(Expr * expr, size_t depth) {
 void print_operator_expr(Expr * expr, size_t depth) {
     printf_with_indent(depth, "[Operator]\n");
     return;
+}
+
+
+void print_variable_expr(Expr * expr, size_t depth) {
+    VariableExpr * variable_expr = (VariableExpr*)expr->expr;
+
+    printf_with_indent(depth, "[Variable] ");
+    printf("'%s'\n", variable_expr->name->lexeme);
+}
+
+void print_assign_expr(Expr * expr, size_t depth) {
+    AssignExpr * assign_expr = (AssignExpr*)expr->expr;
+
+    printf_with_indent(depth, "[Assign] ");
+    printf_with_indent(depth, "'%s'\n", assign_expr->name->lexeme);
+    print_ast(assign_expr->value, depth+1);
+}
+
+void print_stmt_list(Stmt * head_stmt, size_t depth) {
+    if (head_stmt == NULL) {
+        return;
+    }
+
+    Stmt * cur_stmt = head_stmt;
+
+    print_single_stmt(cur_stmt, depth);
+    if (cur_stmt->next_stmt != NULL && cur_stmt->next_stmt != head_stmt) {
+        cur_stmt = cur_stmt->next_stmt;
+    }
+    while (cur_stmt != head_stmt) {
+        print_single_stmt(cur_stmt, depth);
+        cur_stmt = cur_stmt->next_stmt;
+    }
+}
+
+void print_single_stmt(Stmt * stmt, size_t depth) {
+    if (stmt == NULL) {
+        return;
+    }
+    switch (stmt->stmt_type) {
+        case PRINT_STMT:
+            print_print_stmt(((PrintStmt*)stmt->stmt), depth+1);
+            break;
+        case EXPR_STMT:
+            print_expr_stmt(((ExprStmt*)stmt->stmt), depth+1);
+            break;
+        case VAR_STMT:
+            print_var_stmt(((VarStmt*)stmt->stmt), depth+1);
+            break;
+        case BLOCK_STMT:
+            print_block_stmt(((BlockStmt*)stmt->stmt), depth+1);
+            break;
+        default:
+            return;
+    }
+}
+
+void print_print_stmt(PrintStmt * stmt, size_t depth) {
+    if (stmt == NULL) {
+        return;
+    }
+
+    printf_with_indent(depth, "[PrintStmt]\n");
+    if (stmt->expr != NULL) {
+        print_ast(stmt->expr, depth+1);
+    }
+}
+
+void print_expr_stmt(ExprStmt * stmt, size_t depth) {
+    if (stmt == NULL) {
+        return;
+    }
+
+    printf_with_indent(depth, "[ExprStmt]\n");
+    if (stmt->expr != NULL) {
+        print_ast(stmt->expr, depth+1);
+    }
+}
+
+void print_var_stmt(VarStmt * stmt, size_t depth) {
+    if (stmt == NULL) {
+        return;
+    }
+
+    printf_with_indent(depth, "[VarStmt] ");
+    printf("'%s'\n", stmt->name->lexeme);
+    if (stmt->initializer != NULL) {
+        print_ast(stmt->initializer, depth+1);
+    }
+}
+
+void print_block_stmt(BlockStmt * stmt, size_t depth) {
+    if (stmt == NULL) {
+        return;
+    }
+
+    printf_with_indent(depth, "[BlockStmt]\n");
+    if (stmt->head_stmt != NULL) {
+        print_stmt_list(stmt->head_stmt, depth+1);
+    }
 }
 

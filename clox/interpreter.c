@@ -546,8 +546,6 @@ void visit_print_stmt(Interpreter * inter, Stmt * stmt) {
     if (val != NULL) {
         fprintf(stdout, "%s\n", stringify(val));
     }
-    free_value(val);
-    val = NULL;
     return;
 }
 
@@ -564,7 +562,7 @@ void visit_var_stmt(Interpreter * inter, Stmt * stmt) {
 void visit_block_stmt(Interpreter * inter, Stmt * stmt) {
     BlockStmt * block_stmt = (BlockStmt*)stmt->stmt;
 
-    execute_block(inter, block_stmt->head_stmt, new_environment());
+    execute_block(inter, block_stmt->head_stmt, new_enclosing_environment(inter->env));
 }
 
 void execute_block(Interpreter * inter, Stmt * head_stmt, Environment * env) {
@@ -574,14 +572,17 @@ void execute_block(Interpreter * inter, Stmt * head_stmt, Environment * env) {
 
     Stmt * cur_stmt = head_stmt;
 
-    execute(inter, cur_stmt);
-    try_throw_runtime_error(inter);
-    cur_stmt = cur_stmt->next_stmt;
-    while (cur_stmt != head_stmt) {
+    do {
         execute(inter, cur_stmt);
-        try_throw_runtime_error(inter);
+        if (*inter->has_runtime_error != VALUE_FALSE) { //try-finally
+            inter->env = prev_env;
+            free_runtime_error_struct(inter->runtime_error);
+            inter->runtime_error = NULL;
+            *inter->has_runtime_error = VALUE_FALSE;
+            return;
+        }
         cur_stmt = cur_stmt->next_stmt;
-    }
+    } while (cur_stmt != NULL && cur_stmt != head_stmt);
 
     inter->env = prev_env;
 }
