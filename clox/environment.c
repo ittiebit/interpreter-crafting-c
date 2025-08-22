@@ -4,6 +4,7 @@
 #include "./interpreter.h" // <-- typedef struct Environment here
 #include "./token.h"
 #include "../utils/hashmap.h"
+#include "types.h"
 
 Environment * new_environment(Interpreter * inter) {
     Environment * env = malloc(sizeof(Environment));
@@ -65,7 +66,9 @@ void define(Environment * env, char * name, Value * val) {
 Value * get(Interpreter * inter, Environment * env, Token * name) {
     any_t val = NULL;
     if (hashmap_get(env->env_map, name->lexeme, &val) == MAP_OK) {
-        return (Value*)val;
+        Value * ret_val = (Value*)val;
+        ret_val->is_temporary = VALUE_FALSE;
+        return ret_val;
     }
 
     if (env->enclosing != NULL) {
@@ -163,6 +166,7 @@ void free_value_list(ValueList * value_list) {
     ValueNode * cur = value_list->head;
     while (cur != NULL) {
         ValueNode * next = cur->next;
+        cur->value->is_temporary = VALUE_TRUE;
         free_value(cur->value);
         free(cur);
         cur = next;

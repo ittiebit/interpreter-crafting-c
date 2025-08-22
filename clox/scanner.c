@@ -124,7 +124,7 @@ Token ** scan_tokens(Scanner * scanner) {
     }
 
     ++scanner->token_list_size;
-    *(scanner->tokens+scanner->token_list_size-1) = create_token(EOFF, strdup(""), NULL, scanner->line-1);
+    *(scanner->tokens+scanner->token_list_size-1) = create_token(EOFF, strdup(""), NULL, scanner->line);
 
     return scanner->tokens;
 }
@@ -342,6 +342,7 @@ void number(Scanner * scanner) {
         exit(1);
     }
     *val = atof(number_str);
+    free(number_str);
 
     add_token(scanner, NUMBER, val);
 }

@@ -219,6 +219,7 @@ Expr * assignment(Parser * parser) {
 
         if (expr->expr_type == EXPR_VARIABLE) {
             Token * name = ((VariableExpr*)expr->expr)->name;
+            free_variable_expr(expr);
             return new_assign_expr(name, value);
         }
 

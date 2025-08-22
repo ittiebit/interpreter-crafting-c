@@ -186,7 +186,7 @@ void print_assign_expr(Expr * expr, size_t depth) {
     AssignExpr * assign_expr = (AssignExpr*)expr->expr;
 
     printf_with_indent(depth, "[Assign] ");
-    printf_with_indent(depth, "'%s'\n", assign_expr->name->lexeme);
+    printf("'%s'\n", assign_expr->name->lexeme);
     print_ast(assign_expr->value, depth+1);
 }
 

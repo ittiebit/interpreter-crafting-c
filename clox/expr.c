@@ -34,8 +34,14 @@ Expr * new_binary_expr(Expr * left, Token * operator, Expr * right) {
 void free_binary_expr(Expr * expr) {
     BinaryExpr * binary_expr = expr->expr;
     binary_expr->token = NULL;
-    binary_expr->left = NULL;
-    binary_expr->right = NULL;
+    if (binary_expr->left != NULL) {
+        free_ast(binary_expr->left);
+        binary_expr->left = NULL;
+    }
+    if (binary_expr->right != NULL) {
+        free_ast(binary_expr->right);
+        binary_expr->right = NULL;
+    }
     free(binary_expr);
     expr->expr = NULL;
     expr->expr_type = 0;
@@ -69,7 +75,10 @@ Expr * new_unary_expr(Token * operator, Expr * right) {
 void free_unary_expr(Expr * expr) {
     UnaryExpr * unary_expr = expr->expr;
     unary_expr->token = NULL;
-    unary_expr->expr = NULL;
+    if (unary_expr->expr != NULL) {
+        free_ast(unary_expr->expr);
+        unary_expr->expr = NULL;
+    }
     free(unary_expr);
     expr->expr = NULL;
     expr->expr_type = 0;
@@ -107,9 +116,18 @@ void free_ternary_expr(Expr * expr) {
     TernaryExpr * ternary_expr = expr->expr;
     ternary_expr->token_left = NULL;
     ternary_expr->token_right = NULL;
-    ternary_expr->left = NULL;
-    ternary_expr->mid = NULL;
-    ternary_expr->right = NULL;
+    if (ternary_expr->left == NULL) {
+        free_ast(ternary_expr->left);
+        ternary_expr->left = NULL;
+    }
+    if (ternary_expr->mid == NULL) {
+        free_ast(ternary_expr->mid);
+        ternary_expr->mid = NULL;
+    }
+    if (ternary_expr->right == NULL) {
+        free_ast(ternary_expr->mid);
+        ternary_expr->right = NULL;
+    }
     free(ternary_expr);
     expr->expr = NULL;
     expr->expr_type = 0;
@@ -193,7 +211,10 @@ Expr * new_grouping_expr(TokenType type, Expr * expr_val) {
 
 void free_grouping_expr(Expr * expr) {
     GroupingExpr * grouping_expr = expr->expr;
-    grouping_expr->expr = NULL; // surely dont have to free it
+    if (grouping_expr->expr != NULL) {
+        free_ast(grouping_expr->expr);
+        grouping_expr->expr = NULL;
+    }
     free(grouping_expr);
     expr->expr = NULL;
     expr->expr_type = 0;
@@ -256,7 +277,7 @@ Expr * new_assign_expr(Token * name, Expr * value) {
 void free_assign_expr(Expr * expr) {
     AssignExpr * assign_expr = expr->expr;
     if (assign_expr->value != NULL) {
-        free(assign_expr->value);
+        free_ast(assign_expr->value);
         assign_expr->value = NULL;
     }
     assign_expr->name = NULL;
@@ -278,16 +299,12 @@ void free_ast(Expr * expr) {
         break;
     case EXPR_GROUPING:
         free_grouping_expr(expr);
-        free_ast(((GroupingExpr*)expr->expr)->expr);
         break;
     case EXPR_UNARY:
         free_unary_expr(expr);
-        free_ast(((UnaryExpr*)expr->expr)->expr);
         break;
     case EXPR_BINARY:
         free_binary_expr(expr);
-        free_ast(((BinaryExpr*)expr->expr)->left);
-        free_ast(((BinaryExpr*)expr->expr)->right);
         break;
     case EXPR_OPERATOR:
         //free_operator_expr(expr);
@@ -295,6 +312,9 @@ void free_ast(Expr * expr) {
         break;
     case EXPR_VARIABLE:
         free_variable_expr(expr);
+        break;
+    case EXPR_ASSIGN:
+        free_assign_expr(expr);
         break;
     default:
         return;

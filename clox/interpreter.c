@@ -131,7 +131,7 @@ char * stringify(Value * val) {
     return NULL;
 }
 
-Value * create_value(const void * val, size_t val_size, Value_Type type) {
+Value * create_value(void * val, size_t val_size, Value_Type type) {
     Value * value = NULL;
     if ((value = malloc(sizeof(Value))) == NULL) {
         exit(1);
@@ -155,11 +155,15 @@ Value * create_value(const void * val, size_t val_size, Value_Type type) {
         memcpy(value->value, val, val_size);
     }
     value->type = type;
+    value->is_temporary = VALUE_TRUE;
     return value;
 }
 
 void free_value(Value * val) {
     if (val == NULL) {
+        return;
+    }
+    if (!val->is_temporary) {
         return;
     }
     if (val->value != NULL && val->type != VAL_NIL) {
@@ -277,23 +281,19 @@ void free_runtime_error_struct(RuntimeError * runtime_error) {
 }
 
 void set_runtime_error(Interpreter * inter, Token * token, char * message) {
-    RuntimeError * runtime_error;
+    RuntimeError *new_error = malloc(sizeof(RuntimeError));
+    if (new_error == NULL) exit(1);
+
+    new_error->message = strdup(message);
+    new_error->token = token;
+
     if (inter->runtime_error != NULL) {
-        if ((runtime_error = malloc(sizeof(RuntimeError))) == NULL) {
-            return;
-            //exit(1);
-        }
+        free(inter->runtime_error->message);
+        free(inter->runtime_error);
     }
-
-    if (message == NULL) {
-        message = strdup("");
-    }
-
-    runtime_error->message = strdup(message);
-    runtime_error->token = token;
 
     *inter->has_runtime_error = VALUE_TRUE;
-    inter->runtime_error = runtime_error;
+    inter->runtime_error = new_error;
 }
 
 void try_throw_runtime_error(Interpreter * inter) {
@@ -348,6 +348,7 @@ Value * visit_binary_expr(Interpreter * inter, Expr * expr) {
 
     Value * right_val = evaluate(inter, binary_expr->right);
     Value * left_val = evaluate(inter, binary_expr->left);
+    Value * ret = NULL;
 
     TokenType type = binary_expr->token->type;
 
@@ -359,7 +360,7 @@ Value * visit_binary_expr(Interpreter * inter, Expr * expr) {
         case MINUS:
             check_number_operand(inter, binary_expr->token, right_val);
             num_result = left_num - right_num;
-            return create_value(&num_result, sizeof(double), VAL_DOUBLE);
+            ret = create_value(&num_result, sizeof(double), VAL_DOUBLE);
         case PLUS:
             // Concatenate two strings
             if (right_val->type == VAL_STRING && left_val->type == VAL_STRING) {
@@ -371,49 +372,63 @@ Value * visit_binary_expr(Interpreter * inter, Expr * expr) {
                 }
                 strcpy(concatenated, left_str);
                 strcat(concatenated, right_str);
-                return create_value(concatenated, sizeof(strlen(concatenated)), VAL_STRING);
+                ret = create_value(concatenated, sizeof(strlen(concatenated)), VAL_STRING);
+                break;
             } else if (right_val->type == VAL_DOUBLE && left_val->type == VAL_DOUBLE) {
                 num_result = left_num + right_num;
-                return create_value(&num_result, sizeof(double), VAL_DOUBLE);
+                ret = create_value(&num_result, sizeof(double), VAL_DOUBLE);
+                break;
             }
-            set_runtime_error(inter, binary_expr->token, strdup("Operands must be two numbers or two strings."));
+
+            char * err_message = strdup("Operands must be two numbers or two strings.");
+            set_runtime_error(inter, binary_expr->token, err_message);
+            free(err_message);
+            if (left_val) free_value(left_val);
+            if (right_val) free_value(right_val);
+
             break;
         case SLASH:
             check_number_operands(inter, binary_expr->token, left_val, right_val);
             num_result = left_num / right_num;
-            return create_value(&num_result, sizeof(double), VAL_DOUBLE);
+            ret = create_value(&num_result, sizeof(double), VAL_DOUBLE);
         case STAR:
             check_number_operands(inter, binary_expr->token, left_val, right_val);
             num_result = left_num * right_num;
-            return create_value(&num_result, sizeof(double), VAL_DOUBLE);
+            ret = create_value(&num_result, sizeof(double), VAL_DOUBLE);
         default: break;
+    }
+
+    if (ret != NULL) {
+        free_value(left_val);
+        free_value(right_val);
+        return ret;
     }
 
     boolean bool_result = VALUE_FALSE;
     switch (type) {
         case EQUAL:
             bool_result = left_num == right_num;
-            return create_value(&bool_result, sizeof(boolean), VAL_BOOLEAN);
+            ret = create_value(&bool_result, sizeof(boolean), VAL_BOOLEAN);
             break;
         case GREATER:
             check_number_operands(inter, binary_expr->token, left_val, right_val);
             bool_result = left_num > right_num;
-            return create_value(&bool_result, sizeof(boolean), VAL_BOOLEAN);
+            ret = create_value(&bool_result, sizeof(boolean), VAL_BOOLEAN);
             break;
         case LESS:
             check_number_operands(inter, binary_expr->token, left_val, right_val);
             bool_result = left_num < right_num;
-            return create_value(&bool_result, sizeof(boolean), VAL_BOOLEAN);
+            ret = create_value(&bool_result, sizeof(boolean), VAL_BOOLEAN);
             break;
         case LESS_EQUAL:
             check_number_operands(inter, binary_expr->token, left_val, right_val);
             bool_result = left_num <= right_num;
-            return create_value(&bool_result, sizeof(boolean), VAL_BOOLEAN);
+            ret = create_value(&bool_result, sizeof(boolean), VAL_BOOLEAN);
             break;
         case GREATER_EQUAL:
             check_number_operands(inter, binary_expr->token, left_val, right_val);
             bool_result = left_num >= right_num;
-            return create_value(&bool_result, sizeof(boolean), VAL_BOOLEAN);
+            ret = create_value(&bool_result, sizeof(boolean), VAL_BOOLEAN);
             break;
         default: break;
     }
@@ -422,10 +437,10 @@ Value * visit_binary_expr(Interpreter * inter, Expr * expr) {
     switch (type) {
         case BANG_EQUAL:
             result = !is_equal(left_val, right_val);
-            return create_value(&result, sizeof(boolean), VAL_BOOLEAN);
+            ret = create_value(&result, sizeof(boolean), VAL_BOOLEAN);
         case EQUAL_EQUAL:
             result = is_equal(left_val, right_val);
-            return create_value(&result, sizeof(boolean), VAL_BOOLEAN);
+            ret = create_value(&result, sizeof(boolean), VAL_BOOLEAN);
             break;
         case COMMA:
             // ???
@@ -433,7 +448,13 @@ Value * visit_binary_expr(Interpreter * inter, Expr * expr) {
         default: break;
     }
 
-    return NULL;
+    if (ret != NULL) {
+        free_value(left_val);
+        free_value(right_val);
+        return ret;
+    }
+
+    return ret;
 }
 
 Value * visit_ternary_expr(Interpreter * inter, Expr * expr) {
@@ -441,11 +462,11 @@ Value * visit_ternary_expr(Interpreter * inter, Expr * expr) {
 
     TernaryExpr * ternary_expr = (TernaryExpr*)expr->expr;
 
-    TokenType type_left = ternary_expr->token_left->type;
-    TokenType type_right = ternary_expr->token_right->type;
-    if (type_left == QUESTION && type_right == COLON) {
-    } else {
-    }
+    //TokenType type_left = ternary_expr->token_left->type;
+    //TokenType type_right = ternary_expr->token_right->type;
+    //if (type_left == QUESTION && type_right == COLON) {
+    //} else {
+    //}
 
     return NULL;
 }
@@ -455,6 +476,7 @@ Value * visit_unary_expr(Interpreter * inter, Expr * expr) {
     TokenType type = unary_expr->token->type;
 
     Value * right_val = evaluate(inter, unary_expr->expr);
+    Value * ret = NULL;
 
     double num;
     boolean boolean;
@@ -462,16 +484,21 @@ Value * visit_unary_expr(Interpreter * inter, Expr * expr) {
     switch (type) {
         case BANG:
             boolean = !*(char*)is_truthy(inter, right_val->value);
-            return create_value(&boolean, sizeof(boolean), VAL_BOOLEAN);
+            //free_value(right_val);
+            ret = create_value(&boolean, sizeof(boolean), VAL_BOOLEAN);
         case MINUS:
             num = -(*(double*)right_val->value);
-            return create_value(&num, sizeof(double), VAL_DOUBLE);
+            //free_value(right_val);
+            ret = create_value(&num, sizeof(double), VAL_DOUBLE);
         default:
             return NULL;
             break;
     }
 
-    return NULL;
+    if (ret != NULL) {
+        free_value(right_val);
+    }
+    return ret;
 }
 
 Value * visit_literal_expr(Interpreter * inter, Expr * expr) {
@@ -480,31 +507,32 @@ Value * visit_literal_expr(Interpreter * inter, Expr * expr) {
 
     double num;
     boolean boolean;
+    Value * ret = NULL;
 
     switch (type) {
         case LITERAL_TRUE:
             boolean = VALUE_TRUE;
-            return create_value(&boolean, sizeof(boolean), VAL_BOOLEAN);
+            ret = create_value(&boolean, sizeof(boolean), VAL_BOOLEAN);
             break;
         case LITERAL_FALSE:
             boolean = VALUE_FALSE;
-            return create_value(&boolean, sizeof(boolean), VAL_BOOLEAN);
+            ret = create_value(&boolean, sizeof(boolean), VAL_BOOLEAN);
             break;
         case LITERAL_NIL:
-            return create_value(NULL, sizeof(char), VAL_NIL);
+            ret = create_value(NULL, sizeof(char), VAL_NIL);
             break;
         case LITERAL_STRING:
-            return create_value(literal_expr->value, strlen((char*)literal_expr->value+1), VAL_STRING);
+            ret = create_value(literal_expr->value, strlen((char*)literal_expr->value+1), VAL_STRING);
             break;
         case LITERAL_NUMBER:
-            return create_value(literal_expr->value, sizeof(double), VAL_DOUBLE);
+            ret = create_value(literal_expr->value, sizeof(double), VAL_DOUBLE);
             break;
         default:
             return NULL;
             break;
     }
 
-    return NULL;
+    return ret;
 }
 
 Value * visit_grouping_expr(Interpreter * inter, Expr * expr) {
@@ -556,6 +584,7 @@ void visit_print_stmt(Interpreter * inter, Stmt * stmt) {
         free(stringified);
         stringified = NULL;
     }
+    free_value(val);
     return;
 }
 

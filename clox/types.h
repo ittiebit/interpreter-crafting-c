@@ -15,6 +15,7 @@ typedef enum Value_Type_t {
 typedef struct Value_t {
     void * value;
     Value_Type type;
+    boolean is_temporary;
 } Value;
 
 #endif //TYPES_H

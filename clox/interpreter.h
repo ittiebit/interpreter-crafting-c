@@ -46,8 +46,6 @@ typedef struct Interpreter_t {
 Interpreter * create_interpreter(char * p_runtime_errors);
 void free_interpreter(Interpreter * inter);
 void interpret(Interpreter * inter, Stmt * head_stmt);
-Value * create_value(const void * val, size_t val_size, Value_Type type);
-void free_value(Value * val);
 void try_throw_runtime_error(Interpreter * inter);
 void set_runtime_error(Interpreter * inter, Token * token, char * message);
 
@@ -58,6 +56,8 @@ void define(Environment * env, char * name, Value * val);
 Value * get(Interpreter * inter, Environment * env, Token * name);
 void assign(Interpreter * inter, Environment * env, Token * name, Value * val);
 
+Value * create_value(void * val, size_t val_size, Value_Type type);
+void free_value(Value * val);
 void add_value(ValueList ** value_list, Value * p_value);
 void free_value_list(ValueList * value_list_head);
 void add_environment(EnvironmentList ** environment_list, Environment * p_environment);

@@ -46,23 +46,26 @@ int main(int argc, char ** argv) {
 }
 
 void run_prompt() {
-    char * line = malloc(sizeof(char) * (SOURCE_BUF_SIZE+1));
-    //memset(line, '\0', SOURCE_BUF_SIZE);
+    char * line = malloc(sizeof(char) * SOURCE_BUF_SIZE);
 
     CloxCtx * ctx = create_ctx(NULL);
 
     int interactive = isatty(fileno(stdin));
 
     if (!interactive) {
-        fgets(line, sizeof(line), stdin);
+        fgets(line, SOURCE_BUF_SIZE, stdin);
         run(line, ctx);
         free_ctx(ctx);
+        free_token_list(ctx->tokens);
+        ctx->tokens = NULL;
+        free_scanner(ctx->scanner);
+        ctx->scanner = NULL;
         return;
     }
 
     while (interactive) {
         printf("> ");
-        fgets(line, sizeof(line), stdin);
+        fgets(line, SOURCE_BUF_SIZE, stdin);
         if (line[0] == '\n') continue;
         run(line, ctx);
     }
@@ -112,10 +115,6 @@ void run(char * source, CloxCtx * ctx) {
 
     free_stmt_list(stmt);
 
-    free_token_list(ctx->tokens);
-    ctx->tokens = NULL;
-    free_scanner(ctx->scanner);
-    ctx->scanner = NULL;
     free_parser(ctx->parser);
     ctx->parser = NULL;
 
@@ -136,6 +135,10 @@ void run_file(char * path) {
 
     CloxCtx * ctx = create_ctx(bytes);
     run(bytes, ctx);
+    free_token_list(ctx->tokens);
+    ctx->tokens = NULL;
+    free_scanner(ctx->scanner);
+    ctx->scanner = NULL;
 
     if (ctx->errors.scan_errors || ctx->errors.parse_errors) {
         free_ctx(ctx);
@@ -199,14 +202,14 @@ void free_ctx(CloxCtx * ctx) {
     ctx->errors.scan_errors = 0;
     ctx->errors.runtime_errors = 0;
 
-    if (ctx->scanner != NULL) {
-        free_scanner(ctx->scanner);
-        ctx->scanner = NULL;
-    }
-
     if (ctx->tokens != NULL) {
         free_token_list(ctx->tokens);
         ctx->tokens = NULL;
+    }
+
+    if (ctx->scanner != NULL) {
+        free_scanner(ctx->scanner);
+        ctx->scanner = NULL;
     }
 
     if (ctx->inter != NULL) {
