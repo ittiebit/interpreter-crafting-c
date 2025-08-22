@@ -97,14 +97,24 @@ void free_scanner(Scanner * scanner) {
     scanner->current = 0;
     scanner->line = 0;
 
-    hashmap_free(scanner->keyword_map);
-    scanner->keyword_map = NULL;
+    if (scanner->keyword_map != NULL) {
+        hashmap_free(scanner->keyword_map);
+        scanner->keyword_map = NULL;
+    }
 
     *scanner->scan_errors = VALUE_FALSE;
     scanner->scan_errors = NULL;
 
-    memset(scanner->source, 0x0, sizeof(char) * strlen(scanner->source));
-    scanner->source = NULL; // source text buffer not allocated for now
+    if (scanner->source != NULL) {
+        memset(scanner->source, 0x0, sizeof(char) * strlen(scanner->source));
+        scanner->source = NULL;
+    }
+
+    if (scanner->tokens != NULL) {
+        free(scanner->tokens);
+    }
+
+    free(scanner);
 }
 
 Token ** scan_tokens(Scanner * scanner) {
@@ -367,7 +377,8 @@ void identifier(Scanner * scanner) {
 
     //printf("Identifier '%s' has type %i\n", text, type);
 
-    //free(text);
+    free(text);
+    text = NULL;
     add_token(scanner, type, NULL);
 }
 

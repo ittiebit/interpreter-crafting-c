@@ -46,8 +46,8 @@ int main(int argc, char ** argv) {
 }
 
 void run_prompt() {
-    char line[SOURCE_BUF_SIZE];
-    memset(line, '\0', SOURCE_BUF_SIZE);
+    char * line = malloc(sizeof(char) * (SOURCE_BUF_SIZE+1));
+    //memset(line, '\0', SOURCE_BUF_SIZE);
 
     CloxCtx * ctx = create_ctx(NULL);
 
@@ -66,6 +66,7 @@ void run_prompt() {
         if (line[0] == '\n') continue;
         run(line, ctx);
     }
+    free(line);
     free_ctx(ctx);
     return;
 }
@@ -112,6 +113,7 @@ void run(char * source, CloxCtx * ctx) {
     free_stmt_list(stmt);
 
     free_token_list(ctx->tokens);
+    ctx->tokens = NULL;
     free_scanner(ctx->scanner);
     ctx->scanner = NULL;
     free_parser(ctx->parser);
@@ -202,8 +204,10 @@ void free_ctx(CloxCtx * ctx) {
         ctx->scanner = NULL;
     }
 
-    free_token_list(ctx->tokens);
-    ctx->tokens = NULL;
+    if (ctx->tokens != NULL) {
+        free_token_list(ctx->tokens);
+        ctx->tokens = NULL;
+    }
 
     if (ctx->inter != NULL) {
         free_interpreter(ctx->inter);
@@ -214,6 +218,8 @@ void free_ctx(CloxCtx * ctx) {
         free_parser(ctx->parser);
         ctx->parser = NULL;
     }
+
+    free(ctx);
 }
 
 void free_token_list(Token ** tokens) {

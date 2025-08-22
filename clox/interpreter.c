@@ -45,11 +45,13 @@ Interpreter * create_interpreter(char * p_has_runtime_error) {
     if (p_has_runtime_error != NULL) {
         inter->has_runtime_error = p_has_runtime_error;
     }
-    inter->env = new_environment();
+    inter->env_list = NULL;
+    inter->env = new_environment(inter);
     if (inter->env == NULL) {
         free_interpreter(inter);
         exit(1);
     }
+    inter->runtime_error = NULL;
     return inter;
 }
 
@@ -61,10 +63,15 @@ void free_interpreter(Interpreter * inter) {
         free_runtime_error_struct(inter->runtime_error);
         inter->runtime_error = NULL;
     }
-    if (inter->env != NULL) {
-        free_environment(inter->env);
-        inter->env = NULL;
+    if (inter->env_list != NULL) {
+        free_environment_list(inter->env_list);
+        free(inter->env_list);
+        inter->env_list = NULL;
     }
+    //if (inter->env != NULL) {
+    //    free_environment(inter->env);
+    //    inter->env = NULL;
+    //}
     free(inter);
     inter = NULL;
 }
@@ -544,7 +551,10 @@ void visit_expression_stmt(Interpreter * inter, Stmt * stmt) {
 void visit_print_stmt(Interpreter * inter, Stmt * stmt) {
     Value * val = evaluate(inter, ((PrintStmt*)stmt->stmt)->expr);
     if (val != NULL) {
-        fprintf(stdout, "%s\n", stringify(val));
+        char * stringified = stringify(val);
+        fprintf(stdout, "%s\n", stringified);
+        free(stringified);
+        stringified = NULL;
     }
     return;
 }
@@ -562,7 +572,7 @@ void visit_var_stmt(Interpreter * inter, Stmt * stmt) {
 void visit_block_stmt(Interpreter * inter, Stmt * stmt) {
     BlockStmt * block_stmt = (BlockStmt*)stmt->stmt;
 
-    execute_block(inter, block_stmt->head_stmt, new_enclosing_environment(inter->env));
+    execute_block(inter, block_stmt->head_stmt, new_enclosing_environment(inter, inter->env));
 }
 
 void execute_block(Interpreter * inter, Stmt * head_stmt, Environment * env) {
@@ -576,9 +586,7 @@ void execute_block(Interpreter * inter, Stmt * head_stmt, Environment * env) {
         execute(inter, cur_stmt);
         if (*inter->has_runtime_error != VALUE_FALSE) { //try-finally
             inter->env = prev_env;
-            free_runtime_error_struct(inter->runtime_error);
-            inter->runtime_error = NULL;
-            *inter->has_runtime_error = VALUE_FALSE;
+            try_throw_runtime_error(inter);
             return;
         }
         cur_stmt = cur_stmt->next_stmt;
